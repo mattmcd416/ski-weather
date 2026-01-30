@@ -243,10 +243,125 @@
       margin: 8px 0;
     }
 
+    /* Carousel Container */
+    .carousel-container {
+      position: relative;
+      margin: 20px auto;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .carousel-track {
+      display: flex;
+      transition: transform 0.3s ease-in-out;
+      width: 100%;
+    }
+
     /* Day Box */
     .day-box {
       background: transparent;
-      margin: 20px auto;
+      margin: 0;
+      flex-shrink: 0;
+      flex-grow: 0;
+      box-sizing: border-box;
+    }
+
+    /* Carousel Navigation */
+    .carousel-nav {
+      position: fixed;
+      top: 50vh;
+      transform: translateY(-50%);
+      background: rgba(102, 126, 234, 0.9);
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .carousel-nav:hover {
+      background: rgba(102, 126, 234, 1);
+      transform: translateY(-50%) scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .carousel-nav:disabled {
+      background: rgba(156, 163, 175, 0.5);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .carousel-nav:disabled:hover {
+      transform: translateY(-50%);
+    }
+
+    .carousel-nav-left {
+      left: 20px;
+    }
+
+    .carousel-nav-right {
+      right: 20px;
+    }
+
+    /* Carousel Indicators */
+    .carousel-indicators {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .carousel-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #d1d5db;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .carousel-indicator.active {
+      background: #667eea;
+      width: 32px;
+      border-radius: 6px;
+    }
+
+    .carousel-indicator:hover:not(.active) {
+      background: #9ca3af;
+    }
+
+    /* Responsive Carousel */
+    @media (max-width: 768px) {
+      .carousel-nav {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+      }
+
+      .carousel-nav-left {
+        left: 10px;
+      }
+
+      .carousel-nav-right {
+        right: 10px;
+      }
+
+      .carousel-indicator {
+        width: 10px;
+        height: 10px;
+      }
+
+      .carousel-indicator.active {
+        width: 24px;
+      }
     }
 
     .day-header {
@@ -263,22 +378,29 @@
       white-space: nowrap;
       border-radius: 12px 12px 0 0;
       margin-bottom: 0;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .day-content {
       background: white;
       border-radius: 0 0 12px 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 100%;
+      overflow: hidden;
     }
 
     .comparison-table-wrapper {
       position: relative;
+      width: 100%;
+      overflow-x: auto;
     }
 
     .comparison-table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      table-layout: auto;
+      min-width: 800px;
     }
 
     .comparison-table th {
@@ -318,6 +440,8 @@
       grid-template-columns: 1fr 1fr;
       gap: 20px;
       border-radius: 0 0 12px 12px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .chart-wrapper {
@@ -325,6 +449,8 @@
       padding: 15px;
       border-radius: 8px;
       position: relative;
+      min-width: 0;
+      min-height: 0;
     }
 
     .chart-wrapper canvas {
@@ -625,6 +751,8 @@
   let charts = {};
   let activeSeries = null;
   let editingIndex = null;
+  let currentDayIndex = 0;
+  let totalDays = 0;
 
   // Epic Northeast Mountains Data
   const EPIC_NORTHEAST_MOUNTAINS = [
@@ -935,21 +1063,87 @@
     const overallWinner = calculateOverallWinner(startDate, endDate);
     renderOverallWinner(overallWinner);
 
-    // Render each day - use date strings to avoid timezone issues
+    // Create carousel structure
+    const carouselContainer = $('<div class="carousel-container"></div>');
+    const carouselTrack = $('<div class="carousel-track"></div>');
+
+    // Create navigation buttons
+    const leftButton = $('<button class="carousel-nav carousel-nav-left" id="carousel-prev">‹</button>');
+    const rightButton = $('<button class="carousel-nav carousel-nav-right" id="carousel-next">›</button>');
+
+    carouselContainer.append(leftButton);
+    carouselContainer.append(carouselTrack);
+    carouselContainer.append(rightButton);
+
+    results.append(carouselContainer);
+
+    // Collect all dates
+    const dates = [];
     const start = new Date(startDate + 'T12:00:00');
     const end = new Date(endDate + 'T12:00:00');
     const currentDate = new Date(start);
 
     while (currentDate <= end) {
       const dateStr = formatDate(currentDate);
-
-      // Only render if this date is within our selected range
       if (dateStr >= startDate && dateStr <= endDate) {
-        renderDayBox(dateStr, new Date(currentDate));
+        dates.push({ dateStr, dateObj: new Date(currentDate) });
       }
-
       currentDate.setDate(currentDate.getDate() + 1);
     }
+
+    // Render each day into the carousel track
+    dates.forEach(({ dateStr, dateObj }) => {
+      renderDayBox(dateStr, dateObj, carouselTrack);
+    });
+
+    // Set up carousel state
+    currentDayIndex = 0;
+    totalDays = dates.length;
+
+    // Set carousel track width to accommodate all days
+    carouselTrack.css('width', `${totalDays * 100}%`);
+
+    // Set each day-box width to be proportional to the track
+    $('.day-box').each(function() {
+      $(this).css('width', `${100 / totalDays}%`);
+    });
+
+    // Create indicators
+    const indicators = $('<div class="carousel-indicators"></div>');
+    for (let i = 0; i < totalDays; i++) {
+      const indicator = $(`<button class="carousel-indicator ${i === 0 ? 'active' : ''}" data-index="${i}"></button>`);
+      indicator.click(() => goToDay(i));
+      indicators.append(indicator);
+    }
+    results.append(indicators);
+
+    // Set up navigation handlers
+    $('#carousel-prev').click(() => navigateCarousel(-1));
+    $('#carousel-next').click(() => navigateCarousel(1));
+
+    // Keyboard navigation
+    $(document).off('keydown.carousel').on('keydown.carousel', function(e) {
+      if (e.key === 'ArrowLeft') {
+        navigateCarousel(-1);
+      } else if (e.key === 'ArrowRight') {
+        navigateCarousel(1);
+      }
+    });
+
+    // Update navigation buttons
+    updateCarouselNav();
+
+    // Set up touch/swipe support
+    setupTouchSupport();
+
+    // Force chart resize after carousel setup (using setTimeout to ensure DOM is ready)
+    setTimeout(() => {
+      Object.values(charts).forEach(chart => {
+        if (chart && chart.resize) {
+          chart.resize();
+        }
+      });
+    }, 100);
   }
 
   function calculateOverallWinner(startDate, endDate) {
@@ -1077,7 +1271,7 @@
     $('#results').append(html);
   }
 
-  function renderDayBox(dateStr, dateObj) {
+  function renderDayBox(dateStr, dateObj, container) {
     const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
     // Calculate day winner
@@ -1100,7 +1294,7 @@
                 </div>
             `);
 
-    $('#results').append(box);
+    container.append(box);
     renderComparisonTable(dateStr);
     renderCharts(dateStr);
   }
@@ -1801,6 +1995,67 @@
       });
       chart.update();
     });
+  }
+
+  // Carousel Navigation Functions
+  function navigateCarousel(direction) {
+    const newIndex = currentDayIndex + direction;
+    if (newIndex >= 0 && newIndex < totalDays) {
+      goToDay(newIndex);
+    }
+  }
+
+  function goToDay(index) {
+    currentDayIndex = index;
+    // Calculate offset as percentage of track width
+    // Each day takes up (100 / totalDays)% of the track
+    const offset = -(100 / totalDays) * index;
+    $('.carousel-track').css('transform', `translateX(${offset}%)`);
+
+    // Update indicators
+    $('.carousel-indicator').removeClass('active');
+    $(`.carousel-indicator[data-index="${index}"]`).addClass('active');
+
+    updateCarouselNav();
+
+    // Resize charts on the current day after transition
+    setTimeout(() => {
+      Object.values(charts).forEach(chart => {
+        if (chart && chart.resize) {
+          chart.resize();
+        }
+      });
+    }, 350); // Wait for transition to complete (300ms + buffer)
+  }
+
+  function updateCarouselNav() {
+    // Disable/enable navigation buttons
+    $('#carousel-prev').prop('disabled', currentDayIndex === 0);
+    $('#carousel-next').prop('disabled', currentDayIndex === totalDays - 1);
+  }
+
+  // Touch/Swipe Support
+  function setupTouchSupport() {
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    $('.carousel-container').off('touchstart touchend').on('touchstart', function(e) {
+      touchStartX = e.changedTouches[0].screenX;
+    }).on('touchend', function(e) {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipe();
+    });
+
+    function handleSwipe() {
+      const swipeThreshold = 50;
+      if (touchEndX < touchStartX - swipeThreshold) {
+        // Swipe left - go to next day
+        navigateCarousel(1);
+      } else if (touchEndX > touchStartX + swipeThreshold) {
+        // Swipe right - go to previous day
+        navigateCarousel(-1);
+      }
+    }
   }
 
   function updateElevationDisplay() {
