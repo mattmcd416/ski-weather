@@ -61,12 +61,16 @@ Requirements:
             - bar/column charts, 1 mountain per column (y-axis = number of inches, x-axis = 1 bar per mountain)
                 - inches of snow
                 - inches of rain
+            - charts that show temperature on the y-axis should have a red, dotted horizontal line at 0F
+            - charts that show wind on the y-axis should have a red, dotted horizontal line at 30mph
     - IMPORTANT: Clicking ANY of the chart series should effectively "solo" that series (hide others), not just on the clicked chart, but ALL charts on the page
     - IMPORTANT: all charts should have a "ski day" shaded area from 9am-4pm
-    - IMPORTANT: all charts that share a same y-axis (such as temperature and feels-like or the combination of wind speed and wind gusts) should have the same SCALE of
+    - IMPORTANT: all charts that share a same y-axis (such as temperature and feels-like or the combination of wind speed and wind gusts) should have the same SCALE of that axis
     - IMPORTANT: the per-day tables should have column headings at the TOP of the table, indicating the measurement and SPECIFY THE UNITs (aka °F or mph)
-      that axis
     - IMPORTANT: all charts should have roughly a 4:3 width/height ratio and take up ~ 40% of the screen (height)
+    - IMPORTANT: line charts should have `fill: false` to prevent area chart shading underneath
+    - IMPORTANT: bar charts (snow/rain) should hide x-axis labels using `scales: { x: { ticks: { display: false } } }`
+    - IMPORTANT: tables should use `table-layout: fixed` to ensure column headers align properly with table body
     - When scrolling
         - the overall / top form (date + base/mid/peak selection) should stay "sticky" at the top
         - the per-day box heading should be sticky until you scoll past it
@@ -84,6 +88,75 @@ Requirements:
         - adjust the URL construction to ensure the elevation value is an integer, as decimals can sometimes trip up their parser.
 - use emojis with text to make it cute/playful
 - IMPORTANT: for layout, the "mountain manager" each section (top menu, mountain manager, results) should be taking up most of the width of the page and occur one after another
+
+## Technical Implementation Details
+
+### Chart.js Configuration
+- MUST include both Chart.js AND chartjs-plugin-annotation for threshold lines:
+  ```html
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+  ```
+- Line charts MUST have `fill: false` to prevent area chart shading underneath lines
+- Temperature charts (°F) MUST have a red dotted horizontal line at 0°F:
+  ```javascript
+  annotations.freezingLine = {
+    type: 'line',
+    yMin: 0,
+    yMax: 0,
+    borderColor: 'rgba(239, 68, 68, 0.8)',
+    borderWidth: 2,
+    borderDash: [6, 6]
+  };
+  ```
+- Wind charts (mph) MUST have a red dotted horizontal line at 30mph:
+  ```javascript
+  annotations.windThreshold = {
+    type: 'line',
+    yMin: 30,
+    yMax: 30,
+    borderColor: 'rgba(239, 68, 68, 0.8)',
+    borderWidth: 2,
+    borderDash: [6, 6]
+  };
+  ```
+- Bar charts (snow/rain) MUST hide x-axis tick labels:
+  ```javascript
+  scales: {
+    x: {
+      ticks: {
+        display: false
+      }
+    }
+  }
+  ```
+
+### Sticky Positioning (CRITICAL!)
+Sticky positioning ONLY works when parent elements do NOT have `overflow: hidden` or `overflow: auto`. This is a CSS limitation.
+
+**Required CSS:**
+- `.day-box` must have `overflow: visible` (NOT `overflow: hidden`)
+- `.comparison-table-wrapper` must have `overflow: visible` (NOT `overflow: auto` or `overflow-x: auto`)
+- Top form should be sticky at `top: 0` with high z-index (1000)
+- Per-day headers should be sticky at `top: 90px` with z-index 500
+- Per-day table headers should be sticky at `top: 170px` with z-index 400
+- All sticky elements should have box-shadow for visual separation
+- Z-index layering: top-form (1000) > day-header (500) > table-header (400)
+
+### Table Layout
+- Comparison tables MUST use `table-layout: fixed` for proper column alignment
+- Table headers need `box-shadow: 0 2px 4px rgba(0,0,0,0.1)` for visual separation when sticky
+
+### Date Handling
+- When fetching weather data, fetch 7 days prior to support freeze-thaw analysis
+- When RENDERING results, ONLY render the user-selected date range (not the historic dates)
+- Use explicit date string comparisons to avoid timezone issues:
+  ```javascript
+  if (dateStr >= startDate && dateStr <= endDate) {
+    renderDayBox(dateStr, new Date(currentDate));
+  }
+  ```
+- Always append 'T12:00:00' to date strings when creating Date objects to avoid timezone shifts
 
 IMPORTANT: BE SURE TO CONSIDER ALL REQUIREMENTS AND INCLUDE ALL Epic Mountains in NH and VT including:
 - Stowe Mountain Resort (VT)

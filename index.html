@@ -1,231 +1,1451 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Powder-Pivot: Global Sync V45</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
-    <style>
-        :root {
-            --primary: #2c3e50; --accent: #3498db; --success: #2ecc71; --danger: #e74c3c;
-            --header-offset: 90px; --sticky-h1: 48px;
-        }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        html, body { margin: 0; padding: 0; min-height: 100vh; background: #f4f7f9; color: var(--primary); font-family: 'Segoe UI', system-ui, sans-serif; }
-        .container { max-width: 100%; margin: auto; padding: 10px; box-sizing: border-box; }
-        .card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .sticky-controls { position: sticky; top: 0; z-index: 10000; background: white; border-bottom: 2px solid var(--accent); padding: 10px 15px; height: var(--header-offset); box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .control-row { display: flex; align-items: center; gap: 8px; }
-        #progress-container { width: 100%; height: 4px; background: #eee; margin-top: 8px; display: none; overflow: hidden; }
-        #progress-bar { width: 0%; height: 100%; background: var(--success); }
-        .day-container { margin-top: 30px; border-radius: 8px; background: white; border: 1px solid #ddd; overflow: visible; }
-        .day-header { background: var(--primary); color: white; padding: 0 15px; font-size: 1.05em; font-weight: bold; position: sticky; top: var(--header-offset); z-index: 9500; height: var(--sticky-h1); display: flex; align-items: center; justify-content: space-between; }
-        .powder-badge { background: #fff; color: var(--success); padding: 2px 8px; border-radius: 4px; font-size: 0.7em; margin-left: 10px; animation: pulse 2s infinite; border: 1px solid var(--success); }
-        .stats-widget { font-size: 0.75em; display: flex; gap: 10px; }
-        .stats-item { background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 3px; }
-        .main-data-table { width: 100%; border-collapse: collapse; }
-        .main-data-table thead th { background: #f8f9fa; position: sticky; top: calc(var(--header-offset) + var(--sticky-h1)); z-index: 9300; border-bottom: 2px solid #dee2e6; padding: 10px 5px; font-size: 0.7rem; color: #666; text-transform: uppercase; }
-        .main-data-table td { padding: 10px 5px; text-align: center; font-size: 0.82em; border-bottom: 1px solid #f0f0f0; }
-        //.rank-gold { background: #fffef0; font-weight: bold; }
-        .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; background: #f8f9fa; }
-        .chart-box { background: white; padding: 10px; border-radius: 6px; height: 420px; border: 1px solid #e0e6ed; }
-        .tier-btn { padding: 5px 10px; cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; font-size: 0.85em; }
-        .tier-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-        .mtn-input { border: none; background: transparent; width: 75px; font-family: inherit; font-size: 0.9em; }
-        .mtn-input.editing { border: 1px solid #ddd; background: #fff; padding: 2px; }
-        #summaryBox { text-align: center; border-left: 5px solid var(--success); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⛷️ Ski Mountain Forecast Analyzer</title>
+
+  <!-- Dependencies -->
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f4f8;
+      padding-bottom: 50px;
+    }
+
+    .container {
+      max-width: 98%;
+      margin: 0 auto;
+      padding: 0 10px;
+    }
+
+    /* Top Form - Sticky */
+    #top-form {
+      position: sticky;
+      top: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    #top-form h1 {
+      margin: 0 0 15px 0;
+      font-size: 24px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .btn {
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #059669;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .btn-secondary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #2563eb;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    /* Progress Bar */
+    #progress-container {
+      display: none;
+      margin-top: 10px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    #progress-bar {
+      height: 30px;
+      background: #10b981;
+      width: 0%;
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+    }
+
+    /* Mountain Manager */
+    #mountain-manager {
+      background: white;
+      padding: 25px;
+      margin: 20px auto;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    #mountain-manager h2 {
+      margin-top: 0;
+      color: #1f2937;
+    }
+
+    .mountain-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    .mountain-table th,
+    .mountain-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .mountain-table th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: #374151;
+      position: sticky;
+      top: 0;
+    }
+
+    .mountain-table tr:hover {
+      background: #f9fafb;
+    }
+
+    .mountain-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+
+    .mountain-form input {
+      padding: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+    }
+
+    /* Results Section */
+    #results {
+      margin-top: 20px;
+    }
+
+    .winner-box {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #78350f;
+      padding: 25px;
+      margin: 20px auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .winner-box h2 {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    .pros-cons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 15px;
+    }
+
+    .pros-cons h3 {
+      margin-top: 0;
+    }
+
+    .pros-cons ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+
+    .pros-cons li {
+      margin: 8px 0;
+    }
+
+    /* Day Box */
+    .day-box {
+      background: white;
+      margin: 20px auto;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: visible;
+    }
+
+    .day-header {
+      position: sticky;
+      top: 90px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      padding: 20px 25px;
+      z-index: 500;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .day-header h3 {
+      margin: 0 0 10px 0;
+      font-size: 22px;
+    }
+
+    .day-winner {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 10px 0;
+    }
+
+    .comparison-table-wrapper {
+      position: relative;
+      overflow: visible;
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .comparison-table thead {
+      position: sticky;
+      top: 170px;
+      z-index: 400;
+    }
+
+    .comparison-table th {
+      background: #1f2937;
+      color: white;
+      padding: 12px 8px;
+      text-align: left;
+      font-size: 12px;
+      border-right: 1px solid #374151;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .comparison-table td {
+      padding: 12px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      border-right: 1px solid #e5e7eb;
+    }
+
+    .comparison-table tr:hover {
+      background: #f9fafb;
+    }
+
+    .score {
+      font-weight: 700;
+      font-size: 18px;
+      color: #10b981;
+    }
+
+    .charts-container {
+      padding: 25px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .chart-wrapper {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 8px;
+      position: relative;
+    }
+
+    .chart-wrapper canvas {
+      max-height: 400px;
+    }
+
+    .chart-title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #1f2937;
+    }
+
+    /* Modal for errors */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+      background-color: white;
+      margin: 15% auto;
+      padding: 30px;
+      border-radius: 12px;
+      width: 80%;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover {
+      color: #000;
+    }
+
+    /* Small buttons */
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    /* Utility */
+    .text-center {
+      text-align: center;
+    }
+
+    .mt-2 {
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
-
-<div class="sticky-controls">
-    <div class="control-row">
-        <input type="date" id="startDate"> to <input type="date" id="endDate">
-        <div class="tier-toggle-group">
-            <button class="tier-btn active" data-tier="base">BASE</button>
-            <button class="tier-btn" data-tier="mid">MID</button>
-            <button class="tier-btn" data-tier="peak">PEAK</button>
-        </div>
-        <button class="tier-btn" onclick="setWeekend(0)">This Wknd</button>
-        <button class="tier-btn" onclick="setWeekend(1)">Next Wknd</button>
-        <button id="compareBtn" style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">REFRESH</button>
+<!-- Top Form -->
+<div id="top-form">
+  <div class="container">
+    <h1>⛷️ Ski Mountain Forecast Analyzer</h1>
+    <div class="form-row">
+      <div class="form-group">
+        <label>📅 Start Date</label>
+        <input type="text" id="start-date" readonly>
+      </div>
+      <div class="form-group">
+        <label>📅 End Date</label>
+        <input type="text" id="end-date" readonly>
+      </div>
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <button class="btn btn-secondary" id="this-weekend">This Weekend</button>
+      </div>
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <button class="btn btn-secondary" id="next-weekend">Next Weekend</button>
+      </div>
+      <div class="form-group">
+        <label>🏔️ Elevation</label>
+        <select id="elevation-select">
+          <option value="base">Base</option>
+          <option value="mid" selected>Mid-Mountain</option>
+          <option value="peak">Peak</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" id="load-forecast">🔮 Load Forecast</button>
+      </div>
     </div>
-    <div id="progress-container"><div id="progress-bar"></div></div>
+    <div id="progress-container">
+      <div id="progress-bar">0%</div>
+    </div>
+  </div>
 </div>
 
+<!-- Mountain Manager -->
 <div class="container">
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h4 style="margin:0">🏔️ Mountain Manager</h4>
-            <button id="editToggleBtn" onclick="toggleEditMode()" style="background:#eee; padding:5px 12px; border-radius:4px; border:1px solid #ccc; cursor:pointer; font-size:0.8em;">✏️ EDIT</button>
-        </div>
-        <table style="width:100%; border-collapse:collapse; font-size:0.8em; margin-top:8px;">
-            <thead><tr style="text-align:left; border-bottom:1px solid #eee; color:#666;"><th>Mountain</th><th>Lat</th><th>Lon</th><th>Base</th><th>Peak</th><th></th></tr></thead>
-            <tbody id="mtnBody"></tbody>
-        </table>
-        <button onclick="addEpicAll()" style="margin-top:10px; cursor:pointer; font-size:0.75em;">+ Add Epic NE</button>
+  <div id="mountain-manager">
+    <h2>🏔️ Mountain Manager</h2>
+
+    <div class="mountain-form">
+      <input type="text" id="new-name" placeholder="Mountain Name">
+      <input type="number" step="0.0001" id="new-lat" placeholder="Latitude">
+      <input type="number" step="0.0001" id="new-lng" placeholder="Longitude">
+      <input type="number" id="new-base" placeholder="Base Elevation (ft)">
+      <input type="number" id="new-peak" placeholder="Peak Elevation (ft)">
+      <button class="btn btn-primary" id="add-mountain">➕ Add Mountain</button>
     </div>
-    <div id="summaryBox" style="display:none;" class="card"></div>
-    <div id="dailyResults"></div>
+
+    <button class="btn btn-secondary mt-2" id="add-epic-northeast">⭐ Add All Epic Northeast Mountains</button>
+
+    <div style="overflow-x: auto;">
+      <table class="mountain-table">
+        <thead>
+        <tr>
+          <th>Mountain Name</th>
+          <th>Latitude</th>
+          <th>Longitude</th>
+          <th>Base (ft)</th>
+          <th>Peak (ft)</th>
+          <th>Mid (ft)</th>
+          <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="mountains-tbody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results"></div>
+</div>
+
+<!-- Error Modal -->
+<div id="error-modal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>❌ Error</h2>
+    <p id="error-message"></p>
+  </div>
 </div>
 
 <script>
-    let currentTier = 'base', cachedRaw = null, isEditMode = false;
-    let mountains = JSON.parse(localStorage.getItem('ski_pivot_v45')) || [];
-    let activeCharts = [];
+  // Global state
+  let mountains = [];
+  let weatherData = {};
+  let charts = {};
+  let activeSeries = null;
 
-    const EPIC_NE = [
-        { name: "Stowe", lat: 44.53, lon: -72.78, base: 1280, peak: 4393 },
-        { name: "Okemo", lat: 43.40, lon: -72.71, base: 1144, peak: 3344 },
-        { name: "Mount Snow", lat: 42.96, lon: -72.89, base: 1900, peak: 3600 },
-        { name: "Wildcat", lat: 44.26, lon: -71.20, base: 1950, peak: 4062 },
-        { name: "Attitash", lat: 44.08, lon: -71.23, base: 600, peak: 2350 },
-        { name: "Sunapee", lat: 43.33, lon: -72.08, base: 1230, peak: 2743 },
-        { name: "Hunter", lat: 42.20, lon: -74.22, base: 1600, peak: 3200 }
+  // Epic Northeast Mountains Data
+  const EPIC_NORTHEAST_MOUNTAINS = [
+    { name: 'Stowe Mountain Resort', lat: 44.5304, lng: -72.7875, base: 1600, peak: 3625 },
+    { name: 'Okemo Mountain Resort', lat: 43.4018, lng: -72.7159, base: 1194, peak: 3343 },
+    { name: 'Mount Snow', lat: 42.9604, lng: -72.9201, base: 1900, peak: 3600 },
+    { name: 'Wildcat Mountain', lat: 44.2626, lng: -71.2321, base: 1974, peak: 4062 },
+    { name: 'Attitash Mountain Resort', lat: 44.0854, lng: -71.2511, base: 950, peak: 2350 },
+    { name: 'Mount Sunapee Resort', lat: 43.3359, lng: -72.0833, base: 1035, peak: 2743 },
+    { name: 'Crotched Mountain', lat: 43.0127, lng: -71.8715, base: 1155, peak: 2066 }
+  ];
+
+  // Initialize
+  $(document).ready(function() {
+    initializeDatePickers();
+    loadMountains();
+    renderMountainsTable();
+    setThisWeekend();
+
+    // Event listeners
+    $('#this-weekend').click(setThisWeekend);
+    $('#next-weekend').click(setNextWeekend);
+    $('#add-mountain').click(addMountain);
+    $('#add-epic-northeast').click(addEpicNortheastMountains);
+    $('#load-forecast').click(loadForecast);
+    $('#elevation-select').change(updateElevationDisplay);
+    $('.close').click(() => $('#error-modal').hide());
+  });
+
+  // Date picker initialization
+  function initializeDatePickers() {
+    $('#start-date, #end-date').datepicker({
+      dateFormat: 'yy-mm-dd',
+      minDate: 0
+    });
+  }
+
+  // Weekend functions
+  function setThisWeekend() {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+    const friday = new Date(today);
+    friday.setDate(today.getDate() + daysUntilFriday);
+
+    const sunday = new Date(friday);
+    sunday.setDate(friday.getDate() + 2);
+
+    $('#start-date').val(formatDate(friday));
+    $('#end-date').val(formatDate(sunday));
+  }
+
+  function setNextWeekend() {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntilFriday = ((5 - dayOfWeek + 7) % 7) + 7;
+    const friday = new Date(today);
+    friday.setDate(today.getDate() + daysUntilFriday);
+
+    const sunday = new Date(friday);
+    sunday.setDate(friday.getDate() + 2);
+
+    $('#start-date').val(formatDate(friday));
+    $('#end-date').val(formatDate(sunday));
+  }
+
+  function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Mountain management
+  function loadMountains() {
+    const stored = localStorage.getItem('mountains');
+    if (stored) {
+      mountains = JSON.parse(stored);
+    }
+  }
+
+  function saveMountains() {
+    localStorage.setItem('mountains', JSON.stringify(mountains));
+  }
+
+  function addMountain() {
+    const name = $('#new-name').val().trim();
+    const lat = parseFloat($('#new-lat').val());
+    const lng = parseFloat($('#new-lng').val());
+    const base = parseInt($('#new-base').val());
+    const peak = parseInt($('#new-peak').val());
+
+    if (!name || isNaN(lat) || isNaN(lng) || isNaN(base) || isNaN(peak)) {
+      showError('Please fill in all mountain fields with valid values');
+      return;
+    }
+
+    mountains.push({ name, lat, lng, base, peak });
+    saveMountains();
+    renderMountainsTable();
+
+    // Clear form
+    $('#new-name, #new-lat, #new-lng, #new-base, #new-peak').val('');
+  }
+
+  function addEpicNortheastMountains() {
+    mountains = [...EPIC_NORTHEAST_MOUNTAINS];
+    saveMountains();
+    renderMountainsTable();
+  }
+
+  function deleteMountain(index) {
+    if (confirm(`Delete ${mountains[index].name}?`)) {
+      mountains.splice(index, 1);
+      saveMountains();
+      renderMountainsTable();
+    }
+  }
+
+  function editMountain(index) {
+    const mountain = mountains[index];
+    $('#new-name').val(mountain.name);
+    $('#new-lat').val(mountain.lat);
+    $('#new-lng').val(mountain.lng);
+    $('#new-base').val(mountain.base);
+    $('#new-peak').val(mountain.peak);
+
+    deleteMountain(index);
+  }
+
+  function renderMountainsTable() {
+    const tbody = $('#mountains-tbody');
+    tbody.empty();
+
+    mountains.forEach((m, idx) => {
+      const mid = Math.round((m.peak + m.base) / 2);
+      const row = $(`
+                    <tr>
+                        <td>${m.name}</td>
+                        <td>${m.lat.toFixed(4)}</td>
+                        <td>${m.lng.toFixed(4)}</td>
+                        <td>${m.base}</td>
+                        <td>${m.peak}</td>
+                        <td>${mid}</td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" onclick="editMountain(${idx})">✏️ Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteMountain(${idx})">🗑️ Delete</button>
+                        </td>
+                    </tr>
+                `);
+      tbody.append(row);
+    });
+  }
+
+  // Weather fetching
+  async function loadForecast() {
+    if (mountains.length === 0) {
+      showError('Please add at least one mountain first');
+      return;
+    }
+
+    const startDate = $('#start-date').val();
+    const endDate = $('#end-date').val();
+
+    if (!startDate || !endDate) {
+      showError('Please select start and end dates');
+      return;
+    }
+
+    // Calculate date range including 7 days prior for freeze-thaw analysis
+    const start = new Date(startDate);
+    const historicStart = new Date(start);
+    historicStart.setDate(start.getDate() - 7);
+    const historicStartStr = formatDate(historicStart);
+
+    $('#progress-container').show();
+    $('#progress-bar').css('width', '0%').text('0%');
+    weatherData = {};
+
+    try {
+      for (let i = 0; i < mountains.length; i++) {
+        const mountain = mountains[i];
+        const progress = Math.round(((i + 1) / mountains.length) * 100);
+        $('#progress-bar').css('width', progress + '%').text(`Loading ${mountain.name}... ${progress}%`);
+
+        const data = await fetchWeatherForMountain(mountain, historicStartStr, endDate);
+        weatherData[mountain.name] = data;
+      }
+
+      renderResults(startDate, endDate);
+      $('#progress-container').hide();
+    } catch (error) {
+      $('#progress-container').hide();
+      showError(`Failed to load forecast: ${error.message}`);
+    }
+  }
+
+  async function fetchWeatherForMountain(mountain, startDate, endDate) {
+    const mid = Math.round((mountain.peak + mountain.base) / 2);
+
+    // Fetch data for all three elevations
+    const elevations = {
+      base: mountain.base,
+      mid: mid,
+      peak: mountain.peak
+    };
+
+    const results = {};
+
+    for (const [key, elevation] of Object.entries(elevations)) {
+      const url = buildOpenMeteoUrl(mountain.lat, mountain.lng, elevation, startDate, endDate);
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch weather for ${mountain.name} at ${key} elevation: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      results[key] = data;
+    }
+
+    return results;
+  }
+
+  function buildOpenMeteoUrl(lat, lng, elevation, startDate, endDate) {
+    const elevationInt = Math.round(elevation);
+    const params = new URLSearchParams({
+      latitude: lat,
+      longitude: lng,
+      elevation: elevationInt,
+      start_date: startDate,
+      end_date: endDate,
+      hourly: [
+        'temperature_2m',
+        'apparent_temperature',
+        'precipitation',
+        'rain',
+        'snowfall',
+        'weather_code',
+        'cloud_cover',
+        'visibility',
+        'wind_speed_10m',
+        'wind_direction_10m',
+        'wind_gusts_10m'
+      ].join(','),
+      temperature_unit: 'fahrenheit',
+      wind_speed_unit: 'mph',
+      precipitation_unit: 'inch',
+      timezone: 'America/New_York'
+    });
+
+    return `https://api.open-meteo.com/v1/forecast?${params}`;
+  }
+
+  // Results rendering
+  function renderResults(startDate, endDate) {
+    const results = $('#results');
+    results.empty();
+
+    // Destroy existing charts
+    Object.values(charts).forEach(chart => chart.destroy());
+    charts = {};
+
+    // Calculate overall winner
+    const overallWinner = calculateOverallWinner(startDate, endDate);
+    renderOverallWinner(overallWinner);
+
+    // Render each day - use date strings to avoid timezone issues
+    const start = new Date(startDate + 'T12:00:00');
+    const end = new Date(endDate + 'T12:00:00');
+    const currentDate = new Date(start);
+
+    while (currentDate <= end) {
+      const dateStr = formatDate(currentDate);
+
+      // Only render if this date is within our selected range
+      if (dateStr >= startDate && dateStr <= endDate) {
+        renderDayBox(dateStr, new Date(currentDate));
+      }
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+  }
+
+  function calculateOverallWinner(startDate, endDate) {
+    const scores = {};
+    const reasonings = {};
+
+    mountains.forEach(mountain => {
+      let totalScore = 0;
+      let count = 0;
+      const pros = [];
+      const cons = [];
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = formatDate(d);
+        const dayScore = calculateDayScore(mountain, dateStr);
+        totalScore += dayScore.score;
+        count++;
+      }
+
+      const avgScore = totalScore / count;
+      scores[mountain.name] = avgScore;
+
+      // Analyze overall conditions
+      const elevation = $('#elevation-select').val();
+      const data = weatherData[mountain.name][elevation].hourly;
+
+      // Calculate aggregate metrics
+      let totalSnow = 0;
+      let totalRain = 0;
+      let avgTemp = 0;
+      let maxWind = 0;
+      let avgVisibility = 0;
+      let tempCount = 0;
+
+      data.time.forEach((time, idx) => {
+        const date = time.split('T')[0];
+        if (date >= startDate && date <= endDate) {
+          const hour = parseInt(time.split('T')[1].split(':')[0]);
+          if (hour >= 9 && hour <= 16) {
+            totalSnow += data.snowfall[idx] || 0;
+            totalRain += data.rain[idx] || 0;
+            avgTemp += data.temperature_2m[idx] || 0;
+            maxWind = Math.max(maxWind, data.wind_speed_10m[idx] || 0);
+            avgVisibility += data.visibility[idx] || 0;
+            tempCount++;
+          }
+        }
+      });
+
+      avgTemp /= tempCount;
+      avgVisibility /= tempCount;
+
+      // Determine pros
+      if (totalSnow > 3) pros.push(`🌨️ Excellent snowfall: ${totalSnow.toFixed(1)}" expected`);
+      else if (totalSnow > 1) pros.push(`❄️ Good snowfall: ${totalSnow.toFixed(1)}" expected`);
+
+      if (avgTemp >= 20 && avgTemp <= 32) pros.push(`🌡️ Perfect skiing temps: ${avgTemp.toFixed(0)}°F average`);
+      else if (avgTemp > 32 && avgTemp <= 40) pros.push(`☀️ Mild temperatures: ${avgTemp.toFixed(0)}°F average`);
+
+      if (maxWind < 15) pros.push(`💨 Low wind speeds: max ${maxWind.toFixed(0)} mph`);
+      else if (maxWind < 25) pros.push(`🍃 Moderate winds: max ${maxWind.toFixed(0)} mph`);
+
+      if (avgVisibility > 15000) pros.push(`👁️ Excellent visibility: ${(avgVisibility/5280).toFixed(1)} miles`);
+
+      // Determine cons
+      if (totalSnow < 0.5 && totalRain < 0.5) cons.push(`🏜️ Limited precipitation: ${(totalSnow + totalRain).toFixed(1)}" total`);
+
+      if (totalRain > 0.5) cons.push(`🌧️ Rain expected: ${totalRain.toFixed(1)}"`);
+
+      if (avgTemp < 10) cons.push(`🥶 Very cold temps: ${avgTemp.toFixed(0)}°F average`);
+      else if (avgTemp > 40) cons.push(`🔥 Warm temps may soften snow: ${avgTemp.toFixed(0)}°F average`);
+
+      if (maxWind > 25) cons.push(`💨 High winds: gusts up to ${maxWind.toFixed(0)} mph`);
+      else if (maxWind > 35) cons.push(`⚠️ Very high winds: gusts up to ${maxWind.toFixed(0)} mph`);
+
+      if (avgVisibility < 5000) cons.push(`🌫️ Poor visibility: ${(avgVisibility/5280).toFixed(1)} miles`);
+
+      reasonings[mountain.name] = { pros, cons };
+    });
+
+    // Find winner
+    let winner = null;
+    let maxScore = -1;
+
+    for (const [name, score] of Object.entries(scores)) {
+      if (score > maxScore) {
+        maxScore = score;
+        winner = name;
+      }
+    }
+
+    return {
+      name: winner,
+      score: maxScore,
+      pros: reasonings[winner].pros,
+      cons: reasonings[winner].cons
+    };
+  }
+
+  function renderOverallWinner(winner) {
+    const html = $(`
+                <div class="winner-box">
+                    <h2>🏆 Overall Winner: ${winner.name}</h2>
+                    <p><strong>Overall Score:</strong> ${winner.score.toFixed(1)}/100</p>
+                    <div class="pros-cons">
+                        <div>
+                            <h3>✅ Pros</h3>
+                            <ul>
+                                ${winner.pros.map(p => `<li>${p}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div>
+                            <h3>⚠️ Cons</h3>
+                            <ul>
+                                ${winner.cons.length > 0 ? winner.cons.map(c => `<li>${c}</li>`).join('') : '<li>No significant drawbacks!</li>'}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+    $('#results').append(html);
+  }
+
+  function renderDayBox(dateStr, dateObj) {
+    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+    // Calculate day winner
+    const dayWinner = calculateDayWinner(dateStr);
+
+    const boxId = `day-${dateStr}`;
+    const box = $(`
+                <div class="day-box" id="${boxId}">
+                    <div class="day-header">
+                        <h3>📆 ${dayName}</h3>
+                        <div class="day-winner">🥇 Winner: ${dayWinner.name} (Score: ${dayWinner.score.toFixed(1)}/100)</div>
+                        <div class="pros-cons">
+                            <div>
+                                <strong>Why it won:</strong> ${dayWinner.reason}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="comparison-table-wrapper">
+                        <table class="comparison-table" id="table-${dateStr}">
+                        </table>
+                    </div>
+                    <div class="charts-container" id="charts-${dateStr}">
+                    </div>
+                </div>
+            `);
+
+    $('#results').append(box);
+    renderComparisonTable(dateStr);
+    renderCharts(dateStr);
+  }
+
+  function calculateDayWinner(dateStr) {
+    const scores = {};
+    const reasons = {};
+
+    mountains.forEach(mountain => {
+      const result = calculateDayScore(mountain, dateStr);
+      scores[mountain.name] = result.score;
+      reasons[mountain.name] = result.reason;
+    });
+
+    let winner = null;
+    let maxScore = -1;
+
+    for (const [name, score] of Object.entries(scores)) {
+      if (score > maxScore) {
+        maxScore = score;
+        winner = name;
+      }
+    }
+
+    return {
+      name: winner,
+      score: maxScore,
+      reason: reasons[winner]
+    };
+  }
+
+  function calculateDayScore(mountain, dateStr) {
+    const elevation = $('#elevation-select').val();
+    const data = weatherData[mountain.name][elevation].hourly;
+
+    // Extract ski hours (9am-4pm) for this date
+    const skiData = {
+      temps: [],
+      apparentTemps: [],
+      winds: [],
+      gusts: [],
+      snowfall: 0,
+      rain: 0,
+      visibility: []
+    };
+
+    data.time.forEach((time, idx) => {
+      if (time.startsWith(dateStr)) {
+        const hour = parseInt(time.split('T')[1].split(':')[0]);
+        if (hour >= 9 && hour <= 16) {
+          skiData.temps.push(data.temperature_2m[idx] || 0);
+          skiData.apparentTemps.push(data.apparent_temperature[idx] || 0);
+          skiData.winds.push(data.wind_speed_10m[idx] || 0);
+          skiData.gusts.push(data.wind_gusts_10m[idx] || 0);
+          skiData.snowfall += data.snowfall[idx] || 0;
+          skiData.rain += data.rain[idx] || 0;
+          skiData.visibility.push(data.visibility[idx] || 0);
+        }
+      }
+    });
+
+    let score = 50; // Base score
+    const reasons = [];
+
+    // Temperature scoring (ideal: 20-32°F)
+    const avgTemp = skiData.temps.reduce((a, b) => a + b, 0) / skiData.temps.length;
+    if (avgTemp >= 20 && avgTemp <= 32) {
+      score += 15;
+      reasons.push('ideal temps');
+    } else if (avgTemp > 32 && avgTemp <= 40) {
+      score += 10;
+    } else if (avgTemp < 10) {
+      score -= 15;
+      reasons.push('very cold');
+    } else if (avgTemp > 40) {
+      score -= 10;
+    }
+
+    // Snowfall scoring
+    if (skiData.snowfall > 3) {
+      score += 20;
+      reasons.push(`${skiData.snowfall.toFixed(1)}" snow`);
+    } else if (skiData.snowfall > 1) {
+      score += 15;
+      reasons.push(`${skiData.snowfall.toFixed(1)}" snow`);
+    } else if (skiData.snowfall > 0.5) {
+      score += 10;
+    }
+
+    // Rain penalty
+    if (skiData.rain > 0.5) {
+      score -= 20;
+      reasons.push('rain expected');
+    } else if (skiData.rain > 0.1) {
+      score -= 10;
+    }
+
+    // Wind scoring (low is good)
+    const maxWind = Math.max(...skiData.winds);
+    if (maxWind < 10) {
+      score += 10;
+      reasons.push('calm winds');
+    } else if (maxWind > 25) {
+      score -= 15;
+      reasons.push('high winds');
+    } else if (maxWind > 35) {
+      score -= 25;
+    }
+
+    // Visibility scoring
+    const avgVisibility = skiData.visibility.reduce((a, b) => a + b, 0) / skiData.visibility.length;
+    if (avgVisibility > 15000) {
+      score += 5;
+      reasons.push('great visibility');
+    } else if (avgVisibility < 5000) {
+      score -= 10;
+    }
+
+    // Clamp score to 0-100
+    score = Math.max(0, Math.min(100, score));
+
+    return {
+      score,
+      reason: reasons.length > 0 ? reasons.join(', ') : 'moderate conditions'
+    };
+  }
+
+  function renderComparisonTable(dateStr) {
+    const elevation = $('#elevation-select').val();
+    const table = $(`#table-${dateStr}`);
+
+    // Build header
+    const header = $(`
+                <thead>
+                    <tr>
+                        <th>Mountain</th>
+                        <th>Score (0-100)</th>
+                        <th>Feels Like (°F)</th>
+                        <th>Temp (°F)</th>
+                        <th>Wind Speed (mph)</th>
+                        <th>Max Gust (mph)</th>
+                        <th>Wind Dir</th>
+                        <th>Snow (in)</th>
+                        <th>Rain (in)</th>
+                        <th>Freeze-Thaw Cycles (7d)</th>
+                    </tr>
+                </thead>
+            `);
+    table.append(header);
+
+    const tbody = $('<tbody></tbody>');
+
+    mountains.forEach(mountain => {
+      const data = weatherData[mountain.name][elevation].hourly;
+      const metrics = calculateDayMetrics(data, dateStr);
+      const score = calculateDayScore(mountain, dateStr).score;
+      const freezeThaw = calculateFreezeThawCycles(mountain);
+
+      const row = $(`
+                    <tr>
+                        <td><strong>${mountain.name}</strong></td>
+                        <td class="score">${score.toFixed(1)}</td>
+                        <td>${metrics.feelsLikeMin.toFixed(0)} - ${metrics.feelsLikeMax.toFixed(0)}</td>
+                        <td>${metrics.tempMin.toFixed(0)} - ${metrics.tempMax.toFixed(0)}</td>
+                        <td>${metrics.windMin.toFixed(0)} - ${metrics.windMax.toFixed(0)}</td>
+                        <td>${metrics.maxGust.toFixed(0)}</td>
+                        <td>${metrics.windDir}</td>
+                        <td>${metrics.snow.toFixed(2)}</td>
+                        <td>${metrics.rain.toFixed(2)}</td>
+                        <td>${freezeThaw}</td>
+                    </tr>
+                `);
+      tbody.append(row);
+    });
+
+    table.append(tbody);
+  }
+
+  function calculateDayMetrics(data, dateStr) {
+    let feelsLikeMin = Infinity, feelsLikeMax = -Infinity;
+    let tempMin = Infinity, tempMax = -Infinity;
+    let windMin = Infinity, windMax = -Infinity;
+    let maxGust = 0;
+    let snow = 0, rain = 0;
+    const windDirs = [];
+
+    data.time.forEach((time, idx) => {
+      if (time.startsWith(dateStr)) {
+        const hour = parseInt(time.split('T')[1].split(':')[0]);
+        if (hour >= 9 && hour <= 16) {
+          feelsLikeMin = Math.min(feelsLikeMin, data.apparent_temperature[idx] || 0);
+          feelsLikeMax = Math.max(feelsLikeMax, data.apparent_temperature[idx] || 0);
+          tempMin = Math.min(tempMin, data.temperature_2m[idx] || 0);
+          tempMax = Math.max(tempMax, data.temperature_2m[idx] || 0);
+          windMin = Math.min(windMin, data.wind_speed_10m[idx] || 0);
+          windMax = Math.max(windMax, data.wind_speed_10m[idx] || 0);
+          maxGust = Math.max(maxGust, data.wind_gusts_10m[idx] || 0);
+          snow += data.snowfall[idx] || 0;
+          rain += data.rain[idx] || 0;
+          windDirs.push(data.wind_direction_10m[idx]);
+        }
+      }
+    });
+
+    // Average wind direction
+    const avgWindDir = windDirs.reduce((a, b) => a + b, 0) / windDirs.length;
+    const windDir = degreesToCardinal(avgWindDir);
+
+    return {
+      feelsLikeMin, feelsLikeMax,
+      tempMin, tempMax,
+      windMin, windMax,
+      maxGust, snow, rain,
+      windDir
+    };
+  }
+
+  function calculateFreezeThawCycles(mountain) {
+    const elevation = $('#elevation-select').val();
+    const data = weatherData[mountain.name][elevation].hourly;
+
+    let cycles = 0;
+    let wasFrozen = null;
+
+    data.temperature_2m.forEach(temp => {
+      if (temp !== null) {
+        const isFrozen = temp <= 32;
+        if (wasFrozen !== null && wasFrozen !== isFrozen) {
+          if (!isFrozen) { // Thawed
+            // Wait for it to freeze again to count as a cycle
+          } else if (wasFrozen === false) { // Was thawed, now frozen
+            cycles++;
+          }
+        }
+        wasFrozen = isFrozen;
+      }
+    });
+
+    return cycles;
+  }
+
+  function degreesToCardinal(degrees) {
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const index = Math.round(degrees / 45) % 8;
+    return directions[index];
+  }
+
+  function renderCharts(dateStr) {
+    const container = $(`#charts-${dateStr}`);
+    const elevation = $('#elevation-select').val();
+
+    // Prepare time labels for this day (ski hours only)
+    const sampleData = weatherData[mountains[0].name][elevation].hourly;
+    const labels = [];
+    const hourlyIndices = [];
+
+    sampleData.time.forEach((time, idx) => {
+      if (time.startsWith(dateStr)) {
+        const timePart = time.split('T')[1];
+        const hour = parseInt(timePart.split(':')[0]);
+        labels.push(`${hour}:00`);
+        hourlyIndices.push(idx);
+      }
+    });
+
+    // Chart configurations
+    const chartConfigs = [
+      {
+        id: `chart-feels-like-${dateStr}`,
+        title: '🌡️ Feels Like Temperature',
+        type: 'line',
+        dataKey: 'apparent_temperature',
+        yAxisLabel: '°F',
+        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+        borderColor: 'rgba(239, 68, 68, 1)'
+      },
+      {
+        id: `chart-temp-${dateStr}`,
+        title: '🌡️ Actual Temperature',
+        type: 'line',
+        dataKey: 'temperature_2m',
+        yAxisLabel: '°F',
+        backgroundColor: 'rgba(249, 115, 22, 0.2)',
+        borderColor: 'rgba(249, 115, 22, 1)'
+      },
+      {
+        id: `chart-wind-${dateStr}`,
+        title: '💨 Wind Speed',
+        type: 'line',
+        dataKey: 'wind_speed_10m',
+        yAxisLabel: 'mph',
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        borderColor: 'rgba(59, 130, 246, 1)'
+      },
+      {
+        id: `chart-gusts-${dateStr}`,
+        title: '💨 Wind Gusts',
+        type: 'line',
+        dataKey: 'wind_gusts_10m',
+        yAxisLabel: 'mph',
+        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+        borderColor: 'rgba(99, 102, 241, 1)'
+      },
+      {
+        id: `chart-cloud-${dateStr}`,
+        title: '☁️ Cloud Cover',
+        type: 'line',
+        dataKey: 'cloud_cover',
+        yAxisLabel: '%',
+        backgroundColor: 'rgba(156, 163, 175, 0.2)',
+        borderColor: 'rgba(156, 163, 175, 1)'
+      },
+      {
+        id: `chart-visibility-${dateStr}`,
+        title: '👁️ Visibility',
+        type: 'line',
+        dataKey: 'visibility',
+        yAxisLabel: 'feet',
+        backgroundColor: 'rgba(168, 85, 247, 0.2)',
+        borderColor: 'rgba(168, 85, 247, 1)'
+      },
+      {
+        id: `chart-snow-${dateStr}`,
+        title: '❄️ Snowfall',
+        type: 'bar',
+        dataKey: 'snowfall',
+        yAxisLabel: 'inches',
+        backgroundColor: 'rgba(14, 165, 233, 0.6)',
+        borderColor: 'rgba(14, 165, 233, 1)'
+      },
+      {
+        id: `chart-rain-${dateStr}`,
+        title: '🌧️ Rainfall',
+        type: 'bar',
+        dataKey: 'rain',
+        yAxisLabel: 'inches',
+        backgroundColor: 'rgba(34, 197, 94, 0.6)',
+        borderColor: 'rgba(34, 197, 94, 1)'
+      }
     ];
 
-    function renderMtns() {
-        $('#mtnBody').empty();
-        mountains.forEach((m, i) => {
-            const ro = isEditMode ? '' : 'readonly';
-            const ed = isEditMode ? 'editing' : '';
-            $('#mtnBody').append(`<tr><td><strong>${m.name}</strong></td><td><input type="number" step="0.01" value="${m.lat}" ${ro} class="mtn-input ${ed}" data-idx="${i}" data-f="lat"></td><td><input type="number" step="0.01" value="${m.lon}" ${ro} class="mtn-input ${ed}" data-idx="${i}" data-f="lon"></td><td><input type="number" value="${m.base}" ${ro} class="mtn-input ${ed}" data-idx="${i}" data-f="base"></td><td><input type="number" value="${m.peak}" ${ro} class="mtn-input ${ed}" data-idx="${i}" data-f="peak"></td><td><button onclick="mountains.splice(${i},1); saveAndRender();">×</button></td></tr>`);
-        });
-    }
+    chartConfigs.forEach(config => {
+      const wrapper = $(`
+                    <div class="chart-wrapper">
+                        <div class="chart-title">${config.title}</div>
+                        <canvas id="${config.id}"></canvas>
+                    </div>
+                `);
+      container.append(wrapper);
 
-    function toggleEditMode() {
-        if (isEditMode) {
-            $('.mtn-input').each(function() {
-                const idx = $(this).data('idx'); const field = $(this).data('f');
-                mountains[idx][field] = field.includes('l') ? parseFloat($(this).val()) : parseInt($(this).val());
-            });
-            localStorage.setItem('ski_pivot_v45', JSON.stringify(mountains));
-            $('#editToggleBtn').text('✏️ EDIT');
-        } else { $('#editToggleBtn').text('💾 SAVE'); }
-        isEditMode = !isEditMode; renderMtns();
-    }
+      createChart(config, dateStr, labels, hourlyIndices);
+    });
+  }
 
-    function saveAndRender() { localStorage.setItem('ski_pivot_v45', JSON.stringify(mountains)); renderMtns(); }
-    function addEpicAll() { EPIC_NE.forEach(e => { if(!mountains.find(m=>m.name===e.name)) mountains.push(e); }); saveAndRender(); }
+  function createChart(config, dateStr, labels, hourlyIndices) {
+    const elevation = $('#elevation-select').val();
+    const ctx = document.getElementById(config.id).getContext('2d');
 
-    $('.tier-btn[data-tier]').click(function() {
-        $('.tier-btn').removeClass('active'); $(this).addClass('active');
-        currentTier = $(this).data('tier'); if (cachedRaw) process(cachedRaw);
+    const datasets = mountains.map((mountain, idx) => {
+      const data = weatherData[mountain.name][elevation].hourly;
+      const values = hourlyIndices.map(i => data[config.dataKey][i]);
+
+      const colors = [
+        { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 1)' },
+        { bg: 'rgba(249, 115, 22, 0.2)', border: 'rgba(249, 115, 22, 1)' },
+        { bg: 'rgba(34, 197, 94, 0.2)', border: 'rgba(34, 197, 94, 1)' },
+        { bg: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 1)' },
+        { bg: 'rgba(168, 85, 247, 0.2)', border: 'rgba(168, 85, 247, 1)' },
+        { bg: 'rgba(236, 72, 153, 0.2)', border: 'rgba(236, 72, 153, 1)' },
+        { bg: 'rgba(14, 165, 233, 0.2)', border: 'rgba(14, 165, 233, 1)' }
+      ];
+
+      const color = colors[idx % colors.length];
+
+      // For bar charts, sum up the values
+      let displayValues = values;
+      if (config.type === 'bar') {
+        const total = values.reduce((a, b) => a + b, 0);
+        displayValues = [total];
+      }
+
+      return {
+        label: mountain.name,
+        data: config.type === 'bar' ? displayValues : values,
+        backgroundColor: color.bg,
+        borderColor: color.border,
+        borderWidth: 2,
+        fill: false,
+        tension: 0.4,
+        hidden: activeSeries !== null && activeSeries !== mountain.name
+      };
     });
 
-    $('#compareBtn').click(async function() {
-        const start = $('#startDate').val(), end = $('#endDate').val();
-        if(!start || !end) return;
-        $('#progress-container').show();
-        let all = {};
-        try {
-            for (let i=0; i<mountains.length; i++) {
-                const m = mountains[i];
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${m.lat}&longitude=${m.lon}&hourly=temperature_2m,apparent_temperature,windspeed_10m,wind_gusts_10m,snowfall,rain&daily=snowfall_sum&temperature_unit=fahrenheit&windspeed_unit=mph&precipitation_unit=inch&timezone=auto&start_date=${start}&end_date=${end}`;
-                all[m.name] = await $.getJSON(url);
-                $('#progress-bar').css('width', ((i+1)/mountains.length*100)+'%');
+    const chartData = {
+      labels: config.type === 'bar' ? mountains.map(m => m.name) : labels,
+      datasets: datasets
+    };
+
+    const skiDayStart = config.type === 'bar' ? null : labels.indexOf('9:00');
+    const skiDayEnd = config.type === 'bar' ? null : labels.indexOf('16:00');
+
+    // Build annotations
+    const annotations = {};
+
+    // Add ski day shaded area for line charts
+    if (config.type === 'line' && skiDayStart !== -1) {
+      annotations.skiDay = {
+        type: 'box',
+        xMin: skiDayStart,
+        xMax: skiDayEnd,
+        backgroundColor: 'rgba(255, 215, 0, 0.1)',
+        borderColor: 'rgba(255, 215, 0, 0.3)',
+        borderWidth: 1
+      };
+    }
+
+    // Add threshold lines for temperature and wind charts
+    if (config.yAxisLabel === '°F') {
+      annotations.freezingLine = {
+        type: 'line',
+        yMin: 0,
+        yMax: 0,
+        borderColor: 'rgba(239, 68, 68, 0.8)',
+        borderWidth: 2,
+        borderDash: [6, 6],
+        label: {
+          display: true,
+          content: '0°F',
+          position: 'end'
+        }
+      };
+    }
+
+    if (config.yAxisLabel === 'mph') {
+      annotations.windThreshold = {
+        type: 'line',
+        yMin: 30,
+        yMax: 30,
+        borderColor: 'rgba(239, 68, 68, 0.8)',
+        borderWidth: 2,
+        borderDash: [6, 6],
+        label: {
+          display: true,
+          content: '30 mph',
+          position: 'end'
+        }
+      };
+    }
+
+    const chart = new Chart(ctx, {
+      type: config.type,
+      data: chartData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 4/3,
+        onClick: (e, elements) => {
+          if (elements.length > 0) {
+            const datasetIndex = elements[0].datasetIndex;
+            const clickedMountain = mountains[datasetIndex].name;
+            toggleSeriesSolo(clickedMountain);
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            onClick: (e, legendItem, legend) => {
+              const index = legendItem.datasetIndex;
+              const clickedMountain = mountains[index].name;
+              toggleSeriesSolo(clickedMountain);
             }
-            cachedRaw = all; process(all);
-        } finally { $('#progress-container').hide(); }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          },
+          annotation: {
+            annotations: annotations
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            title: {
+              display: true,
+              text: config.yAxisLabel
+            }
+          },
+          x: {
+            title: {
+              display: config.type === 'line',
+              text: 'Time'
+            },
+            ticks: {
+              display: config.type === 'line'
+            }
+          }
+        }
+      }
     });
 
-    function process(raw) {
-        $('#dailyResults, #summaryBox').empty(); activeCharts = [];
-        let dayData = {}, tripStats = {}, start = $('#startDate').val(), globalTemps = [], globalWinds = [];
+    charts[config.id] = chart;
+  }
 
-        Object.keys(raw).forEach(name => {
-            const m = mountains.find(x => x.name === name);
-            const data = raw[name]; tripStats[name] = 0;
-            data.hourly.time.forEach((t, idx) => {
-                const d = t.split('T')[0]; if (d < start) return;
-                const hr = parseInt(t.split('T')[1].split(':')[0]);
-                if (!dayData[d]) dayData[d] = [];
-                let entry = dayData[d].find(x => x.name === name);
-                if (!entry) {
-                    entry = { name, temps: [], feels: [], winds: [], gusts: [], dailySnow: data.daily.snowfall_sum[data.daily.time.indexOf(d)] || 0, skiTemps: [], skiFeels: [], skiWinds: [], skiGusts: [], skiRain: 0, score: 0, pros: [], cons: [] };
-                    dayData[d].push(entry);
-                }
-                const tierDiff = currentTier === 'peak' ? (m.peak - m.base) : (currentTier === 'mid' ? (m.peak-m.base)/2 : 0);
-                const tAdj = (tierDiff/1000*3.5), wAdj = (1+(tierDiff/5000));
-                const curT = data.hourly.temperature_2m[idx] - tAdj, curF = data.hourly.apparent_temperature[idx] - tAdj;
-                const curW = data.hourly.windspeed_10m[idx] * wAdj, curG = data.hourly.wind_gusts_10m[idx] * wAdj;
-                entry.temps.push(curT); entry.feels.push(curF); entry.winds.push(curW); entry.gusts.push(curG);
-                globalTemps.push(curT, curF); globalWinds.push(curW, curG);
-                if(hr >= 9 && hr <= 16) { entry.skiTemps.push(curT); entry.skiFeels.push(curF); entry.skiWinds.push(curW); entry.skiGusts.push(curG); entry.skiRain += data.hourly.rain[idx]; }
-            });
-        });
-
-        const tempScale = { min: Math.min(-5, Math.floor(Math.min(...globalTemps)/5)*5), max: Math.ceil(Math.max(...globalTemps)/5)*5 };
-        const windScale = { min: 0, max: Math.max(40, Math.ceil(Math.max(...globalWinds)/10)*10) };
-
-        Object.keys(dayData).sort().forEach(date => {
-            const dayLabel = new Date(date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-            let totalT = 0, maxGReg = 0, count = 0, hasPowder = false;
-            dayData[date].forEach(m => {
-                const avgG = m.skiGusts.reduce((a,b)=>a+b,0)/m.skiGusts.length;
-                const maxG = Math.max(...m.skiGusts), minT = Math.min(...m.skiTemps);
-                totalT += m.skiTemps.reduce((a,b)=>a+b,0)/m.skiTemps.length;
-                if(maxG > maxGReg) maxGReg = maxG;
-                if(m.dailySnow >= 6) hasPowder = true;
-                count++;
-                m.score = parseFloat(((m.dailySnow * 25) - (avgG * 0.4) - (m.skiRain * 40)).toFixed(1));
-                tripStats[m.name] += m.score;
-                if (m.dailySnow > 1) m.pros.push(`❄️ ${m.dailySnow}" Snow`);
-                if (maxG < 18) m.pros.push("💨 Calm Winds");
-                if (minT > 20) m.pros.push("🌡️ Milder");
-            });
-            //dayData[date].sort((a,b) => b.score - a.score);
-            const win = dayData[date][0];
-            const winAudit = win.pros.length ? ` (+ ${win.pros.join(', ')})` : '';
-
-            let html = `<div class="day-container"><div class="day-header"><span>${dayLabel} — 🏆 Champion: ${win.name}${winAudit}${hasPowder ? '<span class="powder-badge">❄️ POWDER ALERT</span>':''}</span><div class="stats-widget"><span class="stats-item">Avg: ${(totalT/count).toFixed(0)}°</span><span class="stats-item">Gust: ${maxGReg.toFixed(0)}mph</span></div></div>
-                <table class="main-data-table"><thead><tr><th>Mountain</th><th>Score</th><th>Temp (9-4)</th><th>Feels Like</th><th>Wind (9-4)</th><th>Max Gust</th><th>Snow</th><th>Rain</th></tr></thead><tbody>
-                ${dayData[date].map((m,i) => `<tr class="${i===0?'rank-gold':''}"><td>${m.name}</strong></td><td>${m.score}</td><td>${Math.min(...m.skiTemps).toFixed(0)}°/ ${Math.max(...m.skiTemps).toFixed(0)}°</td><td>${Math.min(...m.skiFeels).toFixed(0)}°/ ${Math.max(...m.skiFeels).toFixed(0)}°</td><td>${Math.min(...m.skiWinds).toFixed(0)}-${Math.max(...m.skiWinds).toFixed(0)}</td><td>${Math.max(...m.skiGusts).toFixed(0)}</td><td>${m.dailySnow}"</td><td>${m.skiRain.toFixed(2)}"</td></tr>`).join('')}
-                </tbody></table><div class="charts-grid"><div class="chart-box"><canvas id="t-${date}"></canvas></div><div class="chart-box"><canvas id="f-${date}"></canvas></div><div class="chart-box"><canvas id="w-${date}"></canvas></div><div class="chart-box"><canvas id="g-${date}"></canvas></div><div class="chart-box"><canvas id="sv-${date}"></canvas></div><div class="chart-box"><canvas id="rv-${date}"></canvas></div></div></div>`;
-            $('#dailyResults').append(html);
-            renderCharts(date, dayData[date], tempScale, windScale);
-        });
-
-        let mvp = Object.keys(tripStats).reduce((a, b) => tripStats[a] > tripStats[b] ? a : b);
-        $('#summaryBox').show().html(`<h2 style="margin:0;">🏔️ Trip MVP: <span style="color:var(--success)">${mvp}</span></h2>`);
+  function toggleSeriesSolo(mountainName) {
+    if (activeSeries === mountainName) {
+      // Un-solo - show all
+      activeSeries = null;
+    } else {
+      // Solo this mountain
+      activeSeries = mountainName;
     }
 
-    function renderCharts(d, data, tScale, wScale) {
-        const labels = Array.from({length: 24}, (_, i) => i + ":00"), colors = ['#3498db','#e74c3c','#2ecc71','#f1c40f','#9b59b6','#34495e','#16a085'];
-        const ds = (k) => data.map((m, i) => ({ label: m.name, data: m[k], borderColor: colors[i%7], backgroundColor: colors[i%7], borderWidth: 2, pointRadius: 0, tension: 0.3 }));
-        const tLine = { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(231, 76, 60, 0.6)', borderWidth: 2, borderDash: [6, 6] };
-        const wLine = { type: 'line', yMin: 30, yMax: 30, borderColor: 'rgba(231, 76, 60, 0.6)', borderWidth: 2, borderDash: [6, 6] };
+    // Update all charts
+    Object.values(charts).forEach(chart => {
+      chart.data.datasets.forEach((dataset, idx) => {
+        const datasetMountain = mountains[idx].name;
+        dataset.hidden = activeSeries !== null && activeSeries !== datasetMountain;
+      });
+      chart.update();
+    });
+  }
 
-        const globalSolo = (e, legendItem) => {
-            const index = legendItem.datasetIndex;
-            const isSolo = activeCharts[0].isDatasetVisible(index) && activeCharts[0].data.datasets.filter((d, i) => i !== index && activeCharts[0].isDatasetVisible(i)).length === 0;
-            activeCharts.forEach(chart => {
-                chart.data.datasets.forEach((_, i) => {
-                    if (isSolo) chart.setDatasetVisibility(i, true);
-                    else chart.setDatasetVisibility(i, i === index);
-                });
-                chart.update();
-            });
-        };
+  function updateElevationDisplay() {
+    // Re-render comparison tables and charts with new elevation
+    const startDate = $('#start-date').val();
+    const endDate = $('#end-date').val();
 
-        const opt = (t, scale, line) => ({ maintainAspectRatio: false, plugins: { title: { display:true, text:t }, legend: { onClick: globalSolo }, annotation: { annotations: { skiDayBox: { type: 'box', xMin: 9, xMax: 16, backgroundColor: 'rgba(52, 152, 219, 0.05)', borderWidth: 0 }, threshold: line } } }, scales: { y: { min: scale.min, max: scale.max }, x: { grid: { display: false } } } });
-
-        activeCharts.push(new Chart($(`#t-${d}`), { type: 'line', data: { labels, datasets: ds('temps') }, options: opt('Temperature (F)', tScale, tLine) }));
-        activeCharts.push(new Chart($(`#f-${d}`), { type: 'line', data: { labels, datasets: ds('feels') }, options: opt('Feels Like (F)', tScale, tLine) }));
-        activeCharts.push(new Chart($(`#w-${d}`), { type: 'line', data: { labels, datasets: ds('winds') }, options: opt('Wind Speed (mph)', wScale, wLine) }));
-        activeCharts.push(new Chart($(`#g-${d}`), { type: 'line', data: { labels, datasets: ds('gusts') }, options: opt('Wind Gusts (mph)', wScale, wLine) }));
-        activeCharts.push(new Chart($(`#sv-${d}`), { type: 'bar', data: { labels: data.map(m=>m.name), datasets: [{ label: 'Snow (in)', data: data.map(m=>m.dailySnow), backgroundColor: colors }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Snow Accumulation' } } } }));
-        activeCharts.push(new Chart($(`#rv-${d}`), { type: 'bar', data: { labels: data.map(m=>m.name), datasets: [{ label: 'Rain (in)', data: data.map(m=>m.skiRain), backgroundColor: colors }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Rain (9-4pm)' } } } }));
+    if (startDate && endDate && Object.keys(weatherData).length > 0) {
+      renderResults(startDate, endDate);
     }
+  }
 
-    function setWeekend(offset) {
-        let d = new Date(); d.setDate(d.getDate() + (5 - d.getDay() + 7) % 7 + (offset * 7));
-        $('#startDate').val(d.toISOString().split('T')[0]);
-        let d2 = new Date(d); d2.setDate(d2.getDate() + 2);
-        $('#endDate').val(d2.toISOString().split('T')[0]);
-    }
-    setWeekend(0); renderMtns();
+  function showError(message) {
+    $('#error-message').text(message);
+    $('#error-modal').show();
+  }
+
+  // Make functions globally accessible
+  window.deleteMountain = deleteMountain;
+  window.editMountain = editMountain;
 </script>
 </body>
 </html>
