@@ -1313,45 +1313,66 @@
     const elevation = $('#elevation-select').val();
     const ctx = document.getElementById(config.id).getContext('2d');
 
-    const datasets = mountains.map((mountain, idx) => {
-      const data = weatherData[mountain.name][elevation].hourly;
-      const values = hourlyIndices.map(i => data[config.dataKey][i]);
+    const colors = [
+      { bg: 'rgba(239, 68, 68, 0.6)', border: 'rgba(239, 68, 68, 1)' },
+      { bg: 'rgba(249, 115, 22, 0.6)', border: 'rgba(249, 115, 22, 1)' },
+      { bg: 'rgba(34, 197, 94, 0.6)', border: 'rgba(34, 197, 94, 1)' },
+      { bg: 'rgba(59, 130, 246, 0.6)', border: 'rgba(59, 130, 246, 1)' },
+      { bg: 'rgba(168, 85, 247, 0.6)', border: 'rgba(168, 85, 247, 1)' },
+      { bg: 'rgba(236, 72, 153, 0.6)', border: 'rgba(236, 72, 153, 1)' },
+      { bg: 'rgba(14, 165, 233, 0.6)', border: 'rgba(14, 165, 233, 1)' }
+    ];
 
-      const colors = [
-        { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 1)' },
-        { bg: 'rgba(249, 115, 22, 0.2)', border: 'rgba(249, 115, 22, 1)' },
-        { bg: 'rgba(34, 197, 94, 0.2)', border: 'rgba(34, 197, 94, 1)' },
-        { bg: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 1)' },
-        { bg: 'rgba(168, 85, 247, 0.2)', border: 'rgba(168, 85, 247, 1)' },
-        { bg: 'rgba(236, 72, 153, 0.2)', border: 'rgba(236, 72, 153, 1)' },
-        { bg: 'rgba(14, 165, 233, 0.2)', border: 'rgba(14, 165, 233, 1)' }
-      ];
+    let datasets;
+    let chartData;
 
-      const color = colors[idx % colors.length];
+    if (config.type === 'bar') {
+      // For bar charts, create one dataset with all mountain totals
+      const barData = mountains.map((mountain, idx) => {
+        const data = weatherData[mountain.name][elevation].hourly;
+        const values = hourlyIndices.map(i => data[config.dataKey][i]);
+        return values.reduce((a, b) => a + b, 0);
+      });
 
-      // For bar charts, sum up the values
-      let displayValues = values;
-      if (config.type === 'bar') {
-        const total = values.reduce((a, b) => a + b, 0);
-        displayValues = [total];
-      }
+      const backgroundColors = mountains.map((m, idx) => colors[idx % colors.length].bg);
+      const borderColors = mountains.map((m, idx) => colors[idx % colors.length].border);
 
-      return {
-        label: mountain.name,
-        data: config.type === 'bar' ? displayValues : values,
-        backgroundColor: color.bg,
-        borderColor: color.border,
-        borderWidth: 2,
-        fill: false,
-        tension: 0.4,
-        hidden: activeSeries !== null && activeSeries !== mountain.name
+      datasets = [{
+        label: config.yAxisLabel,
+        data: barData,
+        backgroundColor: backgroundColors,
+        borderColor: borderColors,
+        borderWidth: 2
+      }];
+
+      chartData = {
+        labels: mountains.map(m => m.name),
+        datasets: datasets
       };
-    });
+    } else {
+      // For line charts, create one dataset per mountain
+      datasets = mountains.map((mountain, idx) => {
+        const data = weatherData[mountain.name][elevation].hourly;
+        const values = hourlyIndices.map(i => data[config.dataKey][i]);
+        const color = colors[idx % colors.length];
 
-    const chartData = {
-      labels: config.type === 'bar' ? mountains.map(m => m.name) : labels,
-      datasets: datasets
-    };
+        return {
+          label: mountain.name,
+          data: values,
+          backgroundColor: color.bg,
+          borderColor: color.border,
+          borderWidth: 2,
+          fill: false,
+          tension: 0.4,
+          hidden: activeSeries !== null && activeSeries !== mountain.name
+        };
+      });
+
+      chartData = {
+        labels: labels,
+        datasets: datasets
+      };
+    }
 
     const skiDayStart = config.type === 'bar' ? null : labels.indexOf('9:00');
     const skiDayEnd = config.type === 'bar' ? null : labels.indexOf('16:00');
@@ -1404,57 +1425,69 @@
       };
     }
 
-    const chart = new Chart(ctx, {
-      type: config.type,
-      data: chartData,
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: 4/3.6,
-        onClick: (e, elements) => {
-          if (elements.length > 0) {
-            const datasetIndex = elements[0].datasetIndex;
-            const clickedMountain = mountains[datasetIndex].name;
-            toggleSeriesSolo(clickedMountain);
-          }
-        },
-        plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            onClick: (e, legendItem, legend) => {
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: config.type === 'bar' ? 1.5 : 4/3.6,
+      onClick: (e, elements) => {
+        if (config.type === 'line' && elements.length > 0) {
+          const datasetIndex = elements[0].datasetIndex;
+          const clickedMountain = mountains[datasetIndex].name;
+          toggleSeriesSolo(clickedMountain);
+        }
+      },
+      plugins: {
+        legend: {
+          display: config.type === 'line',
+          position: 'top',
+          onClick: (e, legendItem, legend) => {
+            if (config.type === 'line') {
               const index = legendItem.datasetIndex;
               const clickedMountain = mountains[index].name;
               toggleSeriesSolo(clickedMountain);
             }
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false
-          },
-          annotation: {
-            annotations: annotations
           }
         },
-        scales: {
-          y: {
-            beginAtZero: false,
-            title: {
-              display: true,
-              text: config.yAxisLabel
-            }
+        tooltip: {
+          mode: 'index',
+          intersect: false
+        },
+        annotation: {
+          annotations: annotations
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: config.type === 'bar' ? true : false,
+          title: {
+            display: true,
+            text: config.yAxisLabel
+          }
+        },
+        x: {
+          title: {
+            display: config.type === 'line',
+            text: 'Time'
           },
-          x: {
-            title: {
-              display: config.type === 'line',
-              text: 'Time'
-            },
-            ticks: {
-              display: config.type === 'line'
-            }
+          ticks: {
+            autoSkip: config.type === 'line' ? true : false,
+            maxRotation: config.type === 'bar' ? 45 : 0,
+            minRotation: config.type === 'bar' ? 45 : 0
           }
         }
       }
+    };
+
+    // Add bar-specific options
+    if (config.type === 'bar') {
+      chartOptions.barPercentage = 0.8;
+      chartOptions.categoryPercentage = 0.9;
+    }
+
+    const chart = new Chart(ctx, {
+      type: config.type,
+      data: chartData,
+      options: chartOptions
     });
 
     charts[config.id] = chart;
