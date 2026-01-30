@@ -394,6 +394,85 @@
     .warning-red {
       background-color: rgba(239, 68, 68, 0.3) !important;
     }
+
+    /* Landing Page */
+    #landing-page {
+      background: white;
+      padding: 40px;
+      margin: 40px auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      max-width: 900px;
+    }
+
+    #landing-page h2 {
+      color: #667eea;
+      margin-top: 0;
+      font-size: 32px;
+      text-align: center;
+    }
+
+    #landing-page h3 {
+      color: #1f2937;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    #landing-page p {
+      color: #4b5563;
+      line-height: 1.6;
+      margin: 10px 0;
+    }
+
+    #landing-page ol, #landing-page ul {
+      color: #4b5563;
+      line-height: 1.8;
+      margin: 15px 0;
+    }
+
+    #landing-page li {
+      margin: 8px 0;
+    }
+
+    #landing-page .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    #landing-page .feature-card {
+      background: #f9fafb;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    #landing-page .feature-card h4 {
+      margin-top: 0;
+      color: #667eea;
+    }
+
+    #landing-page .cta-button {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      margin: 20px auto;
+      text-align: center;
+      cursor: pointer;
+      border: none;
+      font-size: 16px;
+    }
+
+    #landing-page .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
   </style>
 </head>
 <body>
@@ -442,6 +521,57 @@
 
 <!-- Mountain Manager -->
 <div class="container">
+  <!-- Landing Page -->
+  <div id="landing-page">
+    <h2>⛷️ Welcome to Ski Mountain Forecast Analyzer</h2>
+
+    <p style="text-align: center; font-size: 18px; margin-bottom: 30px;">
+      Compare weather forecasts across multiple ski mountains to find the best conditions for your next ski trip!
+    </p>
+
+    <h3>🚀 Quick Start Guide</h3>
+    <ol>
+      <li><strong>Add Mountains:</strong> Click the "🏔️ Mountain Manager" button in the header to add ski mountains. You can add them individually or use the "⭐ Add All Epic Northeast Mountains" button for quick setup.</li>
+      <li><strong>Select Dates:</strong> Use the date pickers or quick buttons ("This Weekend" / "Next Weekend") to choose your ski dates.</li>
+      <li><strong>Choose Elevation:</strong> Select Base, Mid-Mountain, or Peak to see forecasts at different elevations.</li>
+      <li><strong>Load Forecast:</strong> Click "🔮 Load Forecast" to fetch weather data and see detailed comparisons.</li>
+    </ol>
+
+    <h3>✨ Features</h3>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>🏆 Smart Scoring</h4>
+        <p>Automatically calculates the best mountain based on temperature, snowfall, wind, and visibility.</p>
+      </div>
+      <div class="feature-card">
+        <h4>📊 Visual Charts</h4>
+        <p>See hour-by-hour weather trends with interactive charts for each metric.</p>
+      </div>
+      <div class="feature-card">
+        <h4>❄️ Freeze-Thaw Analysis</h4>
+        <p>Track freeze-thaw cycles to understand ice conditions.</p>
+      </div>
+      <div class="feature-card">
+        <h4>🎯 Threshold Warnings</h4>
+        <p>Color-coded alerts for dangerous conditions like extreme cold or high winds.</p>
+      </div>
+    </div>
+
+    <h3>💡 Tips</h3>
+    <ul>
+      <li>Click on any chart legend or line to solo that mountain's data</li>
+      <li>The app compares all mountains side-by-side for each day</li>
+      <li>Yellow/red highlighting in tables indicates warning conditions</li>
+      <li>Your mountain list is saved automatically in your browser</li>
+    </ul>
+
+    <div style="text-align: center; margin-top: 40px;">
+      <button class="cta-button" onclick="$('#toggle-mountain-manager').click(); $('#landing-page').slideUp(300);">
+        🏔️ Get Started - Add Mountains
+      </button>
+    </div>
+  </div>
+
   <div id="mountain-manager">
     <h2>🏔️ Mountain Manager</h2>
 
@@ -727,6 +857,7 @@
 
       renderResults(startDate, endDate);
       $('#progress-container').hide();
+      $('#landing-page').slideUp(300);
     } catch (error) {
       $('#progress-container').hide();
       showError(`Failed to load forecast: ${error.message}`);
