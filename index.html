@@ -27,7 +27,7 @@
         .main-data-table { width: 100%; border-collapse: collapse; }
         .main-data-table thead th { background: #f8f9fa; position: sticky; top: calc(var(--header-offset) + var(--sticky-h1)); z-index: 9300; border-bottom: 2px solid #dee2e6; padding: 10px 5px; font-size: 0.7rem; color: #666; text-transform: uppercase; }
         .main-data-table td { padding: 10px 5px; text-align: center; font-size: 0.82em; border-bottom: 1px solid #f0f0f0; }
-        .rank-gold { background: #fffef0; font-weight: bold; }
+        //.rank-gold { background: #fffef0; font-weight: bold; }
         .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; background: #f8f9fa; }
         .chart-box { background: white; padding: 10px; border-radius: 6px; height: 420px; border: 1px solid #e0e6ed; }
         .tier-btn { padding: 5px 10px; cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; font-size: 0.85em; }
@@ -175,13 +175,13 @@
                 if (maxG < 18) m.pros.push("💨 Calm Winds");
                 if (minT > 20) m.pros.push("🌡️ Milder");
             });
-            dayData[date].sort((a,b) => b.score - a.score);
+            //dayData[date].sort((a,b) => b.score - a.score);
             const win = dayData[date][0];
             const winAudit = win.pros.length ? ` (+ ${win.pros.join(', ')})` : '';
 
             let html = `<div class="day-container"><div class="day-header"><span>${dayLabel} — 🏆 Champion: ${win.name}${winAudit}${hasPowder ? '<span class="powder-badge">❄️ POWDER ALERT</span>':''}</span><div class="stats-widget"><span class="stats-item">Avg: ${(totalT/count).toFixed(0)}°</span><span class="stats-item">Gust: ${maxGReg.toFixed(0)}mph</span></div></div>
                 <table class="main-data-table"><thead><tr><th>Mountain</th><th>Score</th><th>Temp (9-4)</th><th>Feels Like</th><th>Wind (9-4)</th><th>Max Gust</th><th>Snow</th><th>Rain</th></tr></thead><tbody>
-                ${dayData[date].map((m,i) => `<tr class="${i===0?'rank-gold':''}"><td><strong>${m.name}</strong></td><td>${m.score}</td><td>${Math.min(...m.skiTemps).toFixed(0)}°/ ${Math.max(...m.skiTemps).toFixed(0)}°</td><td>${Math.min(...m.skiFeels).toFixed(0)}°/ ${Math.max(...m.skiFeels).toFixed(0)}°</td><td>${Math.min(...m.skiWinds).toFixed(0)}-${Math.max(...m.skiWinds).toFixed(0)}</td><td>${Math.max(...m.skiGusts).toFixed(0)}</td><td>${m.dailySnow}"</td><td>${m.skiRain.toFixed(2)}"</td></tr>`).join('')}
+                ${dayData[date].map((m,i) => `<tr class="${i===0?'rank-gold':''}"><td>${m.name}</strong></td><td>${m.score}</td><td>${Math.min(...m.skiTemps).toFixed(0)}°/ ${Math.max(...m.skiTemps).toFixed(0)}°</td><td>${Math.min(...m.skiFeels).toFixed(0)}°/ ${Math.max(...m.skiFeels).toFixed(0)}°</td><td>${Math.min(...m.skiWinds).toFixed(0)}-${Math.max(...m.skiWinds).toFixed(0)}</td><td>${Math.max(...m.skiGusts).toFixed(0)}</td><td>${m.dailySnow}"</td><td>${m.skiRain.toFixed(2)}"</td></tr>`).join('')}
                 </tbody></table><div class="charts-grid"><div class="chart-box"><canvas id="t-${date}"></canvas></div><div class="chart-box"><canvas id="f-${date}"></canvas></div><div class="chart-box"><canvas id="w-${date}"></canvas></div><div class="chart-box"><canvas id="g-${date}"></canvas></div><div class="chart-box"><canvas id="sv-${date}"></canvas></div><div class="chart-box"><canvas id="rv-${date}"></canvas></div></div></div>`;
             $('#dailyResults').append(html);
             renderCharts(date, dayData[date], tempScale, windScale);
