@@ -709,11 +709,12 @@
   }
 
   function buildOpenMeteoUrl(lat, lng, elevation, startDate, endDate) {
-    const elevationInt = Math.round(elevation);
+    // Convert feet to meters (API expects meters)
+    const elevationMeters = Math.round(elevation * 0.3048);
     const params = new URLSearchParams({
       latitude: lat,
       longitude: lng,
-      elevation: elevationInt,
+      elevation: elevationMeters,
       start_date: startDate,
       end_date: endDate,
       hourly: [
