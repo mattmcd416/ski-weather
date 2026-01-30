@@ -157,6 +157,7 @@
       margin: 20px auto;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: none;
     }
 
     #mountain-manager h2 {
@@ -399,7 +400,9 @@
 <!-- Top Form -->
 <div id="top-form">
   <div class="container">
-    <h1>⛷️ Ski Mountain Forecast Analyzer</h1>
+    <h1>⛷️ Ski Mountain Forecast Analyzer
+      <button class="btn btn-secondary" id="toggle-mountain-manager" style="font-size: 14px; padding: 8px 12px; margin-left: 15px;">🏔️ Mountain Manager</button>
+    </h1>
     <div class="form-row">
       <div class="form-group">
         <label>📅 Start Date</label>
@@ -518,6 +521,7 @@
     $('#add-epic-northeast').click(addEpicNortheastMountains);
     $('#load-forecast').click(loadForecast);
     $('#elevation-select').change(updateElevationDisplay);
+    $('#toggle-mountain-manager').click(toggleMountainManager);
     $('.close').click(() => $('#error-modal').hide());
   });
 
@@ -1676,6 +1680,10 @@
     if (startDate && endDate && Object.keys(weatherData).length > 0) {
       renderResults(startDate, endDate);
     }
+  }
+
+  function toggleMountainManager() {
+    $('#mountain-manager').slideToggle(300);
   }
 
   function showError(message) {
