@@ -289,6 +289,12 @@
       border-right: 1px solid #374151;
     }
 
+    .comparison-table th:first-child,
+    .comparison-table td:first-child {
+      width: 20%;
+      min-width: 180px;
+    }
+
     .comparison-table td {
       padding: 12px 8px;
       border-bottom: 1px solid #e5e7eb;
@@ -1047,7 +1053,6 @@
                 <thead>
                     <tr>
                         <th>Mountain</th>
-                        <th>Score (0-100)</th>
                         <th>Feels Like (°F)</th>
                         <th>Temp (°F)</th>
                         <th>Wind Speed (mph)</th>
@@ -1072,10 +1077,9 @@
       const row = $(`
                     <tr>
                         <td><strong>${mountain.name}</strong></td>
-                        <td class="score">${score.toFixed(1)}</td>
-                        <td>${metrics.feelsLikeMin.toFixed(0)} - ${metrics.feelsLikeMax.toFixed(0)}</td>
-                        <td>${metrics.tempMin.toFixed(0)} - ${metrics.tempMax.toFixed(0)}</td>
-                        <td>${metrics.windMin.toFixed(0)} - ${metrics.windMax.toFixed(0)}</td>
+                        <td>${metrics.feelsLikeMin.toFixed(0)} / ${metrics.feelsLikeMax.toFixed(0)}</td>
+                        <td>${metrics.tempMin.toFixed(0)} / ${metrics.tempMax.toFixed(0)}</td>
+                        <td>${metrics.windMin.toFixed(0)} / ${metrics.windMax.toFixed(0)}</td>
                         <td>${metrics.maxGust.toFixed(0)}</td>
                         <td>${metrics.windDir}</td>
                         <td>${metrics.snow.toFixed(2)}</td>
