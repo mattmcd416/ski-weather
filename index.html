@@ -482,6 +482,7 @@
   let weatherData = {};
   let charts = {};
   let activeSeries = null;
+  let editingIndex = null;
 
   // Epic Northeast Mountains Data
   const EPIC_NORTHEAST_MOUNTAINS = [
@@ -602,14 +603,31 @@
   }
 
   function editMountain(index) {
-    const mountain = mountains[index];
-    $('#new-name').val(mountain.name);
-    $('#new-lat').val(mountain.lat);
-    $('#new-lng').val(mountain.lng);
-    $('#new-base').val(mountain.base);
-    $('#new-peak').val(mountain.peak);
+    editingIndex = index;
+    renderMountainsTable();
+  }
 
-    deleteMountain(index);
+  function saveMountainEdit(index) {
+    const name = $(`#edit-name-${index}`).val().trim();
+    const lat = parseFloat($(`#edit-lat-${index}`).val());
+    const lng = parseFloat($(`#edit-lng-${index}`).val());
+    const base = parseInt($(`#edit-base-${index}`).val());
+    const peak = parseInt($(`#edit-peak-${index}`).val());
+
+    if (!name || isNaN(lat) || isNaN(lng) || isNaN(base) || isNaN(peak)) {
+      showError('Please fill in all fields with valid values');
+      return;
+    }
+
+    mountains[index] = { name, lat, lng, base, peak };
+    saveMountains();
+    editingIndex = null;
+    renderMountainsTable();
+  }
+
+  function cancelMountainEdit() {
+    editingIndex = null;
+    renderMountainsTable();
   }
 
   function renderMountainsTable() {
@@ -618,7 +636,27 @@
 
     mountains.forEach((m, idx) => {
       const mid = Math.round((m.peak + m.base) / 2);
-      const row = $(`
+
+      if (editingIndex === idx) {
+        // Render editable row
+        const row = $(`
+                    <tr style="background: #fef3c7;">
+                        <td><input type="text" id="edit-name-${idx}" value="${m.name}" style="width: 100%; padding: 4px;"></td>
+                        <td><input type="number" step="0.0001" id="edit-lat-${idx}" value="${m.lat}" style="width: 100%; padding: 4px;"></td>
+                        <td><input type="number" step="0.0001" id="edit-lng-${idx}" value="${m.lng}" style="width: 100%; padding: 4px;"></td>
+                        <td><input type="number" id="edit-base-${idx}" value="${m.base}" style="width: 100%; padding: 4px;"></td>
+                        <td><input type="number" id="edit-peak-${idx}" value="${m.peak}" style="width: 100%; padding: 4px;"></td>
+                        <td>${mid}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="saveMountainEdit(${idx})">💾 Save</button>
+                            <button class="btn btn-secondary btn-sm" onclick="cancelMountainEdit()">❌ Cancel</button>
+                        </td>
+                    </tr>
+                `);
+        tbody.append(row);
+      } else {
+        // Render normal row
+        const row = $(`
                     <tr>
                         <td>${m.name}</td>
                         <td>${m.lat.toFixed(4)}</td>
@@ -632,7 +670,8 @@
                         </td>
                     </tr>
                 `);
-      tbody.append(row);
+        tbody.append(row);
+      }
     });
   }
 
@@ -1458,6 +1497,8 @@
   // Make functions globally accessible
   window.deleteMountain = deleteMountain;
   window.editMountain = editMountain;
+  window.saveMountainEdit = saveMountainEdit;
+  window.cancelMountainEdit = cancelMountainEdit;
 </script>
 </body>
 </html>
