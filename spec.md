@@ -67,14 +67,15 @@ Requirements:
     - IMPORTANT: all charts should have a "ski day" shaded area from 9am-4pm
     - IMPORTANT: all charts that share a same y-axis (such as temperature and feels-like or the combination of wind speed and wind gusts) should have the same SCALE of that axis
     - IMPORTANT: the per-day tables should have column headings at the TOP of the table, indicating the measurement and SPECIFY THE UNITs (aka °F or mph)
-    - IMPORTANT: all charts should have roughly a 4:3 width/height ratio and take up ~ 40% of the screen (height)
+    - IMPORTANT: all charts should have an aspect ratio of 4/3.6 (slightly taller than 4:3) and max-height of 480px
     - IMPORTANT: line charts should have `fill: false` to prevent area chart shading underneath
     - IMPORTANT: bar charts (snow/rain) should hide x-axis labels using `scales: { x: { ticks: { display: false } } }`
     - IMPORTANT: tables should use `table-layout: fixed` to ensure column headers align properly with table body
     - When scrolling
         - the overall / top form (date + base/mid/peak selection) should stay "sticky" at the top
-        - the per-day box heading should be sticky until you scoll past it
-        - the per-day table column headins be sticky until you scoll past it
+        - the per-day box heading should be sticky until you scroll past it
+        - the per-day table column headings be sticky until you scroll past it
+    - Per-day box heading should be a single line with format: `📆 [Day Name] 🥇 Winner: [Mountain] (Score: [X]/100) Why it won: [reason]`
 - Bonus: ability to specify units (F vs C for temp, mph vs kmph for wind, ft vs m for elevation)
     - preferences saved in local storage
     - fetch the last week of historic data and look for "freeze thaw" cycles where the temperature goes from feezing to over freezing and back to freezing
@@ -132,16 +133,24 @@ Requirements:
   ```
 
 ### Sticky Positioning (CRITICAL!)
-Sticky positioning ONLY works when parent elements do NOT have `overflow: hidden` or `overflow: auto`. This is a CSS limitation.
+Sticky positioning ONLY works when the element itself AND its parent elements do NOT have `overflow: hidden`, `overflow: auto`, or `overflow-x: auto`. This is a CSS limitation.
 
-**Required CSS:**
-- `.day-box` must have `overflow: visible` (NOT `overflow: hidden`)
-- `.comparison-table-wrapper` must have `overflow: visible` (NOT `overflow: auto` or `overflow-x: auto`)
-- Top form should be sticky at `top: 0` with high z-index (1000)
-- Per-day headers should be sticky at `top: 90px` with z-index 500
-- Per-day table headers should be sticky at `top: 170px` with z-index 400
-- All sticky elements should have box-shadow for visual separation
-- Z-index layering: top-form (1000) > day-header (500) > table-header (400)
+**Required CSS for sticky to work:**
+- Body must allow natural scrolling (no height constraints)
+- Structure must be: `.day-box` (no background/border/overflow) > `.day-header` (sticky) + `.day-content` (white background with rounded bottom corners)
+- `.day-box` should be a transparent wrapper with NO overflow, position, or visual styling
+- `.day-header` gets the top rounded corners and sticky positioning
+- `.day-content` wraps the table and charts and gets the white background with bottom rounded corners
+- Top form should be sticky at `top: 0` with z-index 1000
+- Per-day headers MUST be sticky with:
+  - `position: -webkit-sticky;` (Safari - put FIRST)
+  - `position: sticky;` (standard - put SECOND to override)
+  - `top: 90px` (positioned below the sticky top form)
+  - `z-index: 500`
+  - `border-radius: 12px 12px 0 0` for top corners only
+- Table headers (comparison table and mountain table) should NOT be sticky - only the blue day headers stick
+- Z-index layering: top-form (1000) > day-header (500)
+- CRITICAL: Sticky elements cannot have ANY parent with overflow: hidden/auto/scroll between them and the scroll container
 
 ### Table Layout
 - Comparison tables MUST use `table-layout: fixed` for proper column alignment

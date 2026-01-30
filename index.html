@@ -17,6 +17,14 @@
       box-sizing: border-box;
     }
 
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       margin: 0;
@@ -162,8 +170,6 @@
       background: #f9fafb;
       font-weight: 600;
       color: #374151;
-      position: sticky;
-      top: 0;
     }
 
     .mountain-table tr:hover {
@@ -227,49 +233,40 @@
 
     /* Day Box */
     .day-box {
-      background: white;
+      background: transparent;
       margin: 20px auto;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow: visible;
     }
 
     .day-header {
+      position: -webkit-sticky;
       position: sticky;
       top: 90px;
       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       color: white;
-      padding: 20px 25px;
+      padding: 15px 25px;
       z-index: 500;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .day-header h3 {
-      margin: 0 0 10px 0;
-      font-size: 22px;
-    }
-
-    .day-winner {
-      font-size: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-size: 16px;
       font-weight: 600;
-      margin: 10px 0;
+      white-space: nowrap;
+      border-radius: 12px 12px 0 0;
+      margin-bottom: 0;
+    }
+
+    .day-content {
+      background: white;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .comparison-table-wrapper {
       position: relative;
-      overflow: visible;
     }
 
     .comparison-table {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
-    }
-
-    .comparison-table thead {
-      position: sticky;
-      top: 170px;
-      z-index: 400;
     }
 
     .comparison-table th {
@@ -279,7 +276,6 @@
       text-align: left;
       font-size: 12px;
       border-right: 1px solid #374151;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .comparison-table td {
@@ -303,6 +299,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 20px;
+      border-radius: 0 0 12px 12px;
     }
 
     .chart-wrapper {
@@ -313,7 +310,7 @@
     }
 
     .chart-wrapper canvas {
-      max-height: 400px;
+      max-height: 480px;
     }
 
     .chart-title {
@@ -886,19 +883,15 @@
     const box = $(`
                 <div class="day-box" id="${boxId}">
                     <div class="day-header">
-                        <h3>📆 ${dayName}</h3>
-                        <div class="day-winner">🥇 Winner: ${dayWinner.name} (Score: ${dayWinner.score.toFixed(1)}/100)</div>
-                        <div class="pros-cons">
-                            <div>
-                                <strong>Why it won:</strong> ${dayWinner.reason}
-                            </div>
+                        📆 ${dayName} &nbsp;&nbsp;&nbsp; 🥇 Winner: ${dayWinner.name} (Score: ${dayWinner.score.toFixed(1)}/100) &nbsp;&nbsp;&nbsp; Why it won: ${dayWinner.reason}
+                    </div>
+                    <div class="day-content">
+                        <div class="comparison-table-wrapper">
+                            <table class="comparison-table" id="table-${dateStr}">
+                            </table>
                         </div>
-                    </div>
-                    <div class="comparison-table-wrapper">
-                        <table class="comparison-table" id="table-${dateStr}">
-                        </table>
-                    </div>
-                    <div class="charts-container" id="charts-${dateStr}">
+                        <div class="charts-container" id="charts-${dateStr}">
+                        </div>
                     </div>
                 </div>
             `);
@@ -1359,7 +1352,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: true,
-        aspectRatio: 4/3,
+        aspectRatio: 4/3.6,
         onClick: (e, elements) => {
           if (elements.length > 0) {
             const datasetIndex = elements[0].datasetIndex;
