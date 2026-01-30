@@ -65,12 +65,23 @@ Requirements:
             - charts that show wind on the y-axis should have a red, dotted horizontal line at 30mph
     - IMPORTANT: Clicking ANY of the chart series should effectively "solo" that series (hide others), not just on the clicked chart, but ALL charts on the page
     - IMPORTANT: all charts should have a "ski day" shaded area from 9am-4pm
-    - IMPORTANT: all charts that share a same y-axis (such as temperature and feels-like or the combination of wind speed and wind gusts) should have the same SCALE of that axis
+    - CRITICAL: all charts for the same day that share the same y-axis unit MUST have identical y-axis scales to allow visual comparison:
+        - Temperature (°F) charts: Feels-Like and Actual Temperature must share the same min/max scale
+        - Wind (mph) charts: Wind Speed and Wind Gusts must share the same min/max scale
+        - Other metrics (cloud cover %, visibility feet) should use consistent scales within their unit type
+        - Calculate the global min/max across ALL mountains for each metric type, then apply with 10% padding
     - IMPORTANT: the per-day tables should have column headings at the TOP of the table, indicating the measurement and SPECIFY THE UNITs (aka °F or mph)
     - IMPORTANT: all charts should have an aspect ratio of 4/3.6 (slightly taller than 4:3) and max-height of 480px
     - IMPORTANT: line charts should have `fill: false` to prevent area chart shading underneath
     - IMPORTANT: bar charts (snow/rain) should hide x-axis labels using `scales: { x: { ticks: { display: false } } }`
     - IMPORTANT: tables should use `table-layout: fixed` to ensure column headers align properly with table body
+    - IMPORTANT: Metric thresholds for visual warnings:
+        - Apparent/Feels-Like Temperature: Yellow warning at 0°F, Red avoid at -10°F
+        - Actual Temperature: Yellow warning at 0°F, Red avoid at -10°F
+        - Wind Speed: Yellow warning at 30mph, Red avoid at 40mph
+        - Wind Gusts: Yellow warning at 30mph, Red avoid at 40mph
+    - IMPORTANT: Charts must display BOTH threshold lines (yellow and red) for applicable metrics
+    - IMPORTANT: Table cells must be highlighted with yellow or red background when values cross thresholds (highlight only the cell, not the entire row)
     - When scrolling
         - the overall / top form (date + base/mid/peak selection) should stay "sticky" at the top
         - the per-day box heading should be sticky until you scroll past it
@@ -99,26 +110,62 @@ Requirements:
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
   ```
 - Line charts MUST have `fill: false` to prevent area chart shading underneath lines
-- Temperature charts (°F) MUST have a red dotted horizontal line at 0°F:
+- Temperature charts (°F) MUST have TWO threshold lines:
   ```javascript
-  annotations.freezingLine = {
+  annotations.tempYellowLine = {
     type: 'line',
     yMin: 0,
     yMax: 0,
+    borderColor: 'rgba(234, 179, 8, 0.8)',
+    borderWidth: 2,
+    borderDash: [6, 6],
+    label: {
+      display: true,
+      content: '0°F Warning',
+      position: 'end'
+    }
+  };
+  annotations.tempRedLine = {
+    type: 'line',
+    yMin: -10,
+    yMax: -10,
     borderColor: 'rgba(239, 68, 68, 0.8)',
     borderWidth: 2,
-    borderDash: [6, 6]
+    borderDash: [6, 6],
+    label: {
+      display: true,
+      content: '-10°F Avoid',
+      position: 'end'
+    }
   };
   ```
-- Wind charts (mph) MUST have a red dotted horizontal line at 30mph:
+- Wind charts (mph) MUST have TWO threshold lines:
   ```javascript
-  annotations.windThreshold = {
+  annotations.windYellowLine = {
     type: 'line',
     yMin: 30,
     yMax: 30,
+    borderColor: 'rgba(234, 179, 8, 0.8)',
+    borderWidth: 2,
+    borderDash: [6, 6],
+    label: {
+      display: true,
+      content: '30mph Warning',
+      position: 'end'
+    }
+  };
+  annotations.windRedLine = {
+    type: 'line',
+    yMin: 40,
+    yMax: 40,
     borderColor: 'rgba(239, 68, 68, 0.8)',
     borderWidth: 2,
-    borderDash: [6, 6]
+    borderDash: [6, 6],
+    label: {
+      display: true,
+      content: '40mph Avoid',
+      position: 'end'
+    }
   };
   ```
 - Bar charts (snow/rain) MUST hide x-axis tick labels:

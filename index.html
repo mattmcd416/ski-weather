@@ -384,6 +384,15 @@
     .mt-2 {
       margin-top: 20px;
     }
+
+    /* Threshold highlighting */
+    .warning-yellow {
+      background-color: rgba(234, 179, 8, 0.3) !important;
+    }
+
+    .warning-red {
+      background-color: rgba(239, 68, 68, 0.3) !important;
+    }
   </style>
 </head>
 <body>
@@ -1114,13 +1123,19 @@
       const score = calculateDayScore(mountain, dateStr).score;
       const freezeThaw = calculateFreezeThawCycles(mountain);
 
+      // Apply threshold highlighting
+      const feelsLikeClass = getThresholdClass(metrics.feelsLikeMin, 'temp');
+      const tempClass = getThresholdClass(metrics.tempMin, 'temp');
+      const windClass = getThresholdClass(metrics.windMax, 'wind');
+      const gustClass = getThresholdClass(metrics.maxGust, 'wind');
+
       const row = $(`
                     <tr>
                         <td><strong>${mountain.name}</strong></td>
-                        <td>${metrics.feelsLikeMin.toFixed(0)} / ${metrics.feelsLikeMax.toFixed(0)}</td>
-                        <td>${metrics.tempMin.toFixed(0)} / ${metrics.tempMax.toFixed(0)}</td>
-                        <td>${metrics.windMin.toFixed(0)} / ${metrics.windMax.toFixed(0)}</td>
-                        <td>${metrics.maxGust.toFixed(0)}</td>
+                        <td class="${feelsLikeClass}">${metrics.feelsLikeMin.toFixed(0)} / ${metrics.feelsLikeMax.toFixed(0)}</td>
+                        <td class="${tempClass}">${metrics.tempMin.toFixed(0)} / ${metrics.tempMax.toFixed(0)}</td>
+                        <td class="${windClass}">${metrics.windMin.toFixed(0)} / ${metrics.windMax.toFixed(0)}</td>
+                        <td class="${gustClass}">${metrics.maxGust.toFixed(0)}</td>
                         <td>${metrics.windDir}</td>
                         <td>${metrics.snow.toFixed(2)}</td>
                         <td>${metrics.rain.toFixed(2)}</td>
@@ -1202,6 +1217,47 @@
     return directions[index];
   }
 
+  function getThresholdClass(value, type) {
+    if (type === 'temp') {
+      if (value <= -10) return 'warning-red';
+      if (value <= 0) return 'warning-yellow';
+    } else if (type === 'wind') {
+      if (value >= 40) return 'warning-red';
+      if (value >= 30) return 'warning-yellow';
+    }
+    return '';
+  }
+
+  function getYAxisMin(config, scales) {
+    if (config.type === 'bar') return undefined;
+
+    if (config.yAxisLabel === '°F') {
+      return scales.temp.min;
+    } else if (config.yAxisLabel === 'mph') {
+      return scales.wind.min;
+    } else if (config.yAxisLabel === 'feet') {
+      return scales.visibility.min;
+    } else if (config.yAxisLabel === '%') {
+      return scales.cloud.min;
+    }
+    return undefined;
+  }
+
+  function getYAxisMax(config, scales) {
+    if (config.type === 'bar') return undefined;
+
+    if (config.yAxisLabel === '°F') {
+      return scales.temp.max;
+    } else if (config.yAxisLabel === 'mph') {
+      return scales.wind.max;
+    } else if (config.yAxisLabel === 'feet') {
+      return scales.visibility.max;
+    } else if (config.yAxisLabel === '%') {
+      return scales.cloud.max;
+    }
+    return undefined;
+  }
+
   function renderCharts(dateStr) {
     const container = $(`#charts-${dateStr}`);
     const elevation = $('#elevation-select').val();
@@ -1219,6 +1275,9 @@
         hourlyIndices.push(idx);
       }
     });
+
+    // Calculate shared y-axis scales for same-unit charts
+    const scales = calculateSharedScales(dateStr, hourlyIndices, elevation);
 
     // Chart configurations
     const chartConfigs = [
@@ -1305,11 +1364,60 @@
                 `);
       container.append(wrapper);
 
-      createChart(config, dateStr, labels, hourlyIndices);
+      createChart(config, dateStr, labels, hourlyIndices, scales);
     });
   }
 
-  function createChart(config, dateStr, labels, hourlyIndices) {
+  function calculateSharedScales(dateStr, hourlyIndices, elevation) {
+    const scales = {
+      temp: { min: Infinity, max: -Infinity },
+      wind: { min: Infinity, max: -Infinity },
+      cloud: { min: 0, max: 100 },
+      visibility: { min: Infinity, max: -Infinity },
+      precip: { min: 0, max: -Infinity }
+    };
+
+    mountains.forEach(mountain => {
+      const data = weatherData[mountain.name][elevation].hourly;
+
+      hourlyIndices.forEach(idx => {
+        // Temperature (both actual and feels-like)
+        const temp = data.temperature_2m[idx] || 0;
+        const apparentTemp = data.apparent_temperature[idx] || 0;
+        scales.temp.min = Math.min(scales.temp.min, temp, apparentTemp);
+        scales.temp.max = Math.max(scales.temp.max, temp, apparentTemp);
+
+        // Wind (both speed and gusts)
+        const wind = data.wind_speed_10m[idx] || 0;
+        const gust = data.wind_gusts_10m[idx] || 0;
+        scales.wind.min = Math.min(scales.wind.min, wind, gust);
+        scales.wind.max = Math.max(scales.wind.max, wind, gust);
+
+        // Visibility
+        const vis = data.visibility[idx] || 0;
+        scales.visibility.min = Math.min(scales.visibility.min, vis);
+        scales.visibility.max = Math.max(scales.visibility.max, vis);
+
+        // Precipitation (snowfall and rain totals)
+        const snow = data.snowfall[idx] || 0;
+        const rain = data.rain[idx] || 0;
+        scales.precip.max = Math.max(scales.precip.max, snow, rain);
+      });
+    });
+
+    // Add padding to scales (10%)
+    scales.temp.min = Math.floor(scales.temp.min * 1.1);
+    scales.temp.max = Math.ceil(scales.temp.max * 1.1);
+    scales.wind.min = 0; // Wind always starts at 0
+    scales.wind.max = Math.ceil(scales.wind.max * 1.1);
+    scales.visibility.min = 0; // Visibility always starts at 0
+    scales.visibility.max = Math.ceil(scales.visibility.max * 1.1);
+    scales.precip.max = Math.ceil(scales.precip.max * 1.1);
+
+    return scales;
+  }
+
+  function createChart(config, dateStr, labels, hourlyIndices, scales) {
     const elevation = $('#elevation-select').val();
     const ctx = document.getElementById(config.id).getContext('2d');
 
@@ -1394,33 +1502,79 @@
 
     // Add threshold lines for temperature and wind charts
     if (config.yAxisLabel === '°F') {
-      annotations.freezingLine = {
+      annotations.tempYellowLine = {
         type: 'line',
         yMin: 0,
         yMax: 0,
+        borderColor: 'rgba(234, 179, 8, 0.8)',
+        borderWidth: 2,
+        borderDash: [6, 6],
+        label: {
+          display: true,
+          content: '0°F Warning',
+          position: 'start',
+          backgroundColor: 'rgba(234, 179, 8, 0.8)',
+          color: 'white',
+          font: {
+            size: 10
+          }
+        }
+      };
+      annotations.tempRedLine = {
+        type: 'line',
+        yMin: -10,
+        yMax: -10,
         borderColor: 'rgba(239, 68, 68, 0.8)',
         borderWidth: 2,
         borderDash: [6, 6],
         label: {
           display: true,
-          content: '0°F',
-          position: 'end'
+          content: '-10°F Avoid',
+          position: 'end',
+          backgroundColor: 'rgba(239, 68, 68, 0.8)',
+          color: 'white',
+          font: {
+            size: 10
+          }
         }
       };
     }
 
     if (config.yAxisLabel === 'mph') {
-      annotations.windThreshold = {
+      annotations.windYellowLine = {
         type: 'line',
         yMin: 30,
         yMax: 30,
+        borderColor: 'rgba(234, 179, 8, 0.8)',
+        borderWidth: 2,
+        borderDash: [6, 6],
+        label: {
+          display: true,
+          content: '30mph Warning',
+          position: 'start',
+          backgroundColor: 'rgba(234, 179, 8, 0.8)',
+          color: 'white',
+          font: {
+            size: 10
+          }
+        }
+      };
+      annotations.windRedLine = {
+        type: 'line',
+        yMin: 40,
+        yMax: 40,
         borderColor: 'rgba(239, 68, 68, 0.8)',
         borderWidth: 2,
         borderDash: [6, 6],
         label: {
           display: true,
-          content: '30 mph',
-          position: 'end'
+          content: '40mph Avoid',
+          position: 'end',
+          backgroundColor: 'rgba(239, 68, 68, 0.8)',
+          color: 'white',
+          font: {
+            size: 10
+          }
         }
       };
     }
@@ -1459,6 +1613,8 @@
       scales: {
         y: {
           beginAtZero: config.type === 'bar' ? true : false,
+          min: getYAxisMin(config, scales),
+          max: getYAxisMax(config, scales),
           title: {
             display: true,
             text: config.yAxisLabel
