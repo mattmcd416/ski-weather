@@ -125,6 +125,8 @@
       background: rgba(255,255,255,0.3);
       border-radius: 10px;
       overflow: hidden;
+      position: relative;
+      height: 30px;
     }
 
     #progress-bar {
@@ -132,11 +134,20 @@
       background: #10b981;
       width: 0%;
       transition: width 0.3s;
+    }
+
+    #progress-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 30px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
       font-weight: 600;
+      pointer-events: none;
     }
 
     /* Mountain Manager */
@@ -405,7 +416,8 @@
       </div>
     </div>
     <div id="progress-container">
-      <div id="progress-bar">0%</div>
+      <div id="progress-bar"></div>
+      <div id="progress-text">0%</div>
     </div>
   </div>
 </div>
@@ -640,14 +652,16 @@
     const historicStartStr = formatDate(historicStart);
 
     $('#progress-container').show();
-    $('#progress-bar').css('width', '0%').text('0%');
+    $('#progress-bar').css('width', '0%');
+    $('#progress-text').text('0%');
     weatherData = {};
 
     try {
       for (let i = 0; i < mountains.length; i++) {
         const mountain = mountains[i];
         const progress = Math.round(((i + 1) / mountains.length) * 100);
-        $('#progress-bar').css('width', progress + '%').text(`Loading ${mountain.name}... ${progress}%`);
+        $('#progress-bar').css('width', progress + '%');
+        $('#progress-text').text(`Loading ${mountain.name}... ${progress}%`);
 
         const data = await fetchWeatherForMountain(mountain, historicStartStr, endDate);
         weatherData[mountain.name] = data;
