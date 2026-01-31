@@ -2126,7 +2126,23 @@
   }
 
   function toggleMountainManager() {
-    $('#mountain-manager').slideToggle(300);
+    const hasResults = $('#results').children().length > 0;
+
+    if ($('#mountain-manager').is(':visible')) {
+      // Hide mountain manager
+      $('#mountain-manager').slideUp(300);
+      // Only show landing page if there are no results
+      if (!hasResults) {
+        $('#landing-page').slideDown(300);
+      }
+    } else {
+      // Show mountain manager
+      // Only hide landing page if there are no results (otherwise it's already hidden)
+      if (!hasResults) {
+        $('#landing-page').slideUp(300);
+      }
+      $('#mountain-manager').slideDown(300);
+    }
   }
 
   function showError(message) {
