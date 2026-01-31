@@ -393,6 +393,24 @@
       box-sizing: border-box;
     }
 
+    .sticky-day-header {
+      position: fixed;
+      left: 1%;
+      right: 1%;
+      max-width: 98%;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      padding: 15px 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-size: 16px;
+      font-weight: 600;
+      white-space: nowrap;
+      z-index: 400;
+      display: none;
+      transition: opacity 0.2s;
+      box-sizing: border-box;
+    }
+
     .day-content {
       background: white;
       border-radius: 0 0 12px 12px;
@@ -645,6 +663,9 @@
     </div>
   </div>
 </div>
+
+<!-- Sticky Day Header (shows when scrolling) -->
+<div id="sticky-day-header" class="sticky-day-header"></div>
 
 <!-- Mountain Manager -->
 <div class="container">
@@ -1136,6 +1157,9 @@
 
     // Set up touch/swipe support
     setupTouchSupport();
+
+    // Set up sticky day header
+    setupStickyDayHeader();
 
     // Force chart resize after carousel setup (using setTimeout to ensure DOM is ready)
     setTimeout(() => {
@@ -2025,6 +2049,8 @@
           chart.resize();
         }
       });
+      // Update sticky header for new day
+      $(window).trigger('scroll.stickyheader');
     }, 350); // Wait for transition to complete (300ms + buffer)
   }
 
@@ -2056,6 +2082,37 @@
         navigateCarousel(-1);
       }
     }
+  }
+
+  // Sticky Header Scroll Handler
+  function setupStickyDayHeader() {
+    $(window).off('scroll.stickyheader').on('scroll.stickyheader', function() {
+      const currentDayBox = $(`.day-box:eq(${currentDayIndex})`);
+      if (currentDayBox.length === 0) return;
+
+      const dayHeader = currentDayBox.find('.day-header');
+      if (dayHeader.length === 0) return;
+
+      const topFormHeight = $('#top-form').outerHeight();
+      const dayHeaderOffset = dayHeader.offset();
+      const scrollTop = $(window).scrollTop();
+
+      // Show sticky header when original header scrolls past the top form
+      if (dayHeaderOffset && scrollTop > dayHeaderOffset.top - topFormHeight) {
+        const headerContent = dayHeader.html();
+        $('#sticky-day-header')
+          .html(headerContent)
+          .css({
+            'display': 'block',
+            'top': topFormHeight + 'px'
+          });
+      } else {
+        $('#sticky-day-header').css('display', 'none');
+      }
+    });
+
+    // Trigger initial check
+    $(window).trigger('scroll.stickyheader');
   }
 
   function updateElevationDisplay() {
