@@ -503,6 +503,11 @@
       #landing-page .feature-grid {
         grid-template-columns: 1fr;
       }
+
+      /* Full range charts responsive */
+      .full-range-charts {
+        grid-template-columns: 1fr !important;
+      }
     }
 
     .day-header {
@@ -1207,9 +1212,18 @@
     Object.values(charts).forEach(chart => chart.destroy());
     charts = {};
 
+    // Calculate historic start date (7 days before)
+    const startDateObj = new Date(startDate);
+    const historicStart = new Date(startDateObj);
+    historicStart.setDate(startDateObj.getDate() - 7);
+    const historicStartStr = formatDate(historicStart);
+
     // Calculate overall winner
     const overallWinner = calculateOverallWinner(startDate, endDate);
     renderOverallWinner(overallWinner);
+
+    // Render full date range precipitation charts
+    renderFullRangePrecipitationCharts(historicStartStr, endDate, results);
 
     // Create carousel structure
     const carouselContainer = $('<div class="carousel-container"></div>');
@@ -1419,6 +1433,228 @@
             `);
 
     $('#results').append(html);
+  }
+
+  function renderFullRangePrecipitationCharts(historicStartStr, endDate, container) {
+    // Create container for full range charts
+    const fullRangeContainer = $(`
+      <div style="background: white; padding: 25px; margin: 20px auto; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <h2 style="margin-top: 0; color: #1f2937;">📊 Precipitation Overview (including 7-Days before selected time-range)</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="full-range-charts">
+          <div class="chart-wrapper">
+            <div class="chart-title">❄️ Daily Snowfall</div>
+            <canvas id="chart-full-snow"></canvas>
+          </div>
+          <div class="chart-wrapper">
+            <div class="chart-title">🌧️ Daily Rainfall</div>
+            <canvas id="chart-full-rain"></canvas>
+          </div>
+        </div>
+      </div>
+    `);
+
+    container.append(fullRangeContainer);
+
+    // Generate all dates in range
+    const dates = [];
+    const currentDate = new Date(historicStartStr);
+    const end = new Date(endDate);
+
+    while (currentDate <= end) {
+      dates.push(formatDate(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Prepare data for charts
+    const elevation = $('#elevation-select').val();
+    const colors = [
+      { bg: 'rgba(239, 68, 68, 0.6)', border: 'rgba(239, 68, 68, 1)' },
+      { bg: 'rgba(249, 115, 22, 0.6)', border: 'rgba(249, 115, 22, 1)' },
+      { bg: 'rgba(34, 197, 94, 0.6)', border: 'rgba(34, 197, 94, 1)' },
+      { bg: 'rgba(59, 130, 246, 0.6)', border: 'rgba(59, 130, 246, 1)' },
+      { bg: 'rgba(168, 85, 247, 0.6)', border: 'rgba(168, 85, 247, 1)' },
+      { bg: 'rgba(236, 72, 153, 0.6)', border: 'rgba(236, 72, 153, 1)' },
+      { bg: 'rgba(14, 165, 233, 0.6)', border: 'rgba(14, 165, 233, 1)' }
+    ];
+
+    // Create datasets for each mountain
+    const snowDatasets = mountains.map((mountain, idx) => {
+      const data = weatherData[mountain.name][elevation].hourly;
+      const dailySnow = dates.map(dateStr => {
+        let total = 0;
+        data.time.forEach((time, timeIdx) => {
+          if (time.startsWith(dateStr)) {
+            total += data.snowfall[timeIdx] || 0;
+          }
+        });
+        return total;
+      });
+
+      const color = colors[idx % colors.length];
+      return {
+        label: mountain.name,
+        data: dailySnow,
+        backgroundColor: color.bg,
+        borderColor: color.border,
+        borderWidth: 2,
+        fill: false,
+        tension: 0.4,
+        hidden: activeSeries !== null && activeSeries !== mountain.name
+      };
+    });
+
+    const rainDatasets = mountains.map((mountain, idx) => {
+      const data = weatherData[mountain.name][elevation].hourly;
+      const dailyRain = dates.map(dateStr => {
+        let total = 0;
+        data.time.forEach((time, timeIdx) => {
+          if (time.startsWith(dateStr)) {
+            total += data.rain[timeIdx] || 0;
+          }
+        });
+        return total;
+      });
+
+      const color = colors[idx % colors.length];
+      return {
+        label: mountain.name,
+        data: dailyRain,
+        backgroundColor: color.bg,
+        borderColor: color.border,
+        borderWidth: 2,
+        fill: false,
+        tension: 0.4,
+        hidden: activeSeries !== null && activeSeries !== mountain.name
+      };
+    });
+
+    // Format dates for display
+    const dateLabels = dates.map(dateStr => {
+      const date = new Date(dateStr + 'T12:00:00');
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+
+    // Calculate shared y-axis scale
+    let maxPrecipitation = 0;
+    snowDatasets.forEach(dataset => {
+      const max = Math.max(...dataset.data);
+      maxPrecipitation = Math.max(maxPrecipitation, max);
+    });
+    rainDatasets.forEach(dataset => {
+      const max = Math.max(...dataset.data);
+      maxPrecipitation = Math.max(maxPrecipitation, max);
+    });
+    // Add 10% padding
+    const yAxisMax = Math.ceil(maxPrecipitation * 1.1 * 100) / 100;
+
+    // Create snowfall chart
+    const snowCtx = document.getElementById('chart-full-snow').getContext('2d');
+    const snowChart = new Chart(snowCtx, {
+      type: 'line',
+      data: {
+        labels: dateLabels,
+        datasets: snowDatasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2,
+        onClick: (e, elements) => {
+          if (elements.length > 0) {
+            const datasetIndex = elements[0].datasetIndex;
+            const clickedMountain = mountains[datasetIndex].name;
+            toggleSeriesSolo(clickedMountain);
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            onClick: (e, legendItem, legend) => {
+              const index = legendItem.datasetIndex;
+              const clickedMountain = mountains[index].name;
+              toggleSeriesSolo(clickedMountain);
+            }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: yAxisMax,
+            title: {
+              display: true,
+              text: 'Inches'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Date'
+            }
+          }
+        }
+      }
+    });
+
+    // Create rainfall chart
+    const rainCtx = document.getElementById('chart-full-rain').getContext('2d');
+    const rainChart = new Chart(rainCtx, {
+      type: 'line',
+      data: {
+        labels: dateLabels,
+        datasets: rainDatasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2,
+        onClick: (e, elements) => {
+          if (elements.length > 0) {
+            const datasetIndex = elements[0].datasetIndex;
+            const clickedMountain = mountains[datasetIndex].name;
+            toggleSeriesSolo(clickedMountain);
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            onClick: (e, legendItem, legend) => {
+              const index = legendItem.datasetIndex;
+              const clickedMountain = mountains[index].name;
+              toggleSeriesSolo(clickedMountain);
+            }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: yAxisMax,
+            title: {
+              display: true,
+              text: 'Inches'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Date'
+            }
+          }
+        }
+      }
+    });
+
+    charts['chart-full-snow'] = snowChart;
+    charts['chart-full-rain'] = rainChart;
   }
 
   function renderDayBox(dateStr, dateObj, container) {
