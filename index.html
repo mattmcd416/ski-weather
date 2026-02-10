@@ -1817,6 +1817,7 @@
                 <thead>
                     <tr>
                         <th>Mountain</th>
+                        <th>Weather</th>
                         <th>Feels Like (°F)</th>
                         <th>Temp (°F)</th>
                         <th>Wind Speed (mph)</th>
@@ -1837,6 +1838,7 @@
       const metrics = calculateDayMetrics(data, dateStr);
       const score = calculateDayScore(mountain, dateStr).score;
       const freezeThaw = calculateFreezeThawCycles(mountain);
+      const weatherIcon = getWeatherIcon(data, dateStr);
 
       // Apply threshold highlighting
       const feelsLikeClass = getThresholdClass(metrics.feelsLikeMin, 'temp');
@@ -1847,6 +1849,7 @@
       const row = $(`
                     <tr>
                         <td><strong>${mountain.name}</strong></td>
+                        <td style="font-size: 24px; text-align: center;">${weatherIcon}</td>
                         <td class="${feelsLikeClass}">${metrics.feelsLikeMin.toFixed(0)} / ${metrics.feelsLikeMax.toFixed(0)}</td>
                         <td class="${tempClass}">${metrics.tempMin.toFixed(0)} / ${metrics.tempMax.toFixed(0)}</td>
                         <td class="${windClass}">${metrics.windMin.toFixed(0)} / ${metrics.windMax.toFixed(0)}</td>
@@ -1861,6 +1864,82 @@
     });
 
     table.append(tbody);
+  }
+
+  function getWeatherIcon(data, dateStr) {
+    // Analyze weather during ski hours (9am-4pm) and return appropriate icon
+    let totalSnow = 0, totalRain = 0;
+    let avgCloudCover = 0;
+    const weatherCodes = [];
+    let hourCount = 0;
+
+    data.time.forEach((time, idx) => {
+      if (time.startsWith(dateStr)) {
+        const hour = parseInt(time.split('T')[1].split(':')[0]);
+        if (hour >= 9 && hour <= 16) {
+          totalSnow += data.snowfall[idx] || 0;
+          totalRain += data.rain[idx] || 0;
+          avgCloudCover += data.cloud_cover[idx] || 0;
+          weatherCodes.push(data.weather_code[idx] || 0);
+          hourCount++;
+        }
+      }
+    });
+
+    avgCloudCover = hourCount > 0 ? avgCloudCover / hourCount : 0;
+
+    // Get the most severe weather code during ski hours
+    const maxWeatherCode = Math.max(...weatherCodes);
+
+    // Determine icon based on precipitation, weather codes, and cloud cover
+    // Priority: precipitation type/intensity > cloud cover
+
+    // Heavy snow / blizzard conditions (>3 inches or heavy snow codes)
+    if (totalSnow > 3 || maxWeatherCode === 75 || maxWeatherCode === 77 || maxWeatherCode === 86) {
+      return '🌨️'; // Heavy snow/blizzard
+    }
+
+    // Moderate to light snow
+    if (totalSnow > 0.5 || maxWeatherCode === 73 || maxWeatherCode === 85) {
+      return '🌨️'; // Moderate snow
+    }
+
+    // Light snow
+    if (totalSnow > 0.1 || maxWeatherCode === 71 || maxWeatherCode === 56 || maxWeatherCode === 57) {
+      return '❄️'; // Light snow
+    }
+
+    // Thunderstorm
+    if (maxWeatherCode >= 95) {
+      return '⛈️'; // Thunderstorm
+    }
+
+    // Heavy rain
+    if (totalRain > 0.5 || maxWeatherCode === 65 || maxWeatherCode === 82) {
+      return '🌧️'; // Heavy rain
+    }
+
+    // Moderate rain
+    if (totalRain > 0.2 || maxWeatherCode === 63 || maxWeatherCode === 81) {
+      return '🌧️'; // Moderate rain
+    }
+
+    // Light rain/drizzle
+    if (totalRain > 0.05 || maxWeatherCode === 61 || maxWeatherCode === 80 ||
+        maxWeatherCode >= 51 && maxWeatherCode <= 55) {
+      return '🌦️'; // Light rain/showers
+    }
+
+    // No precipitation - determine by cloud cover
+    if (avgCloudCover < 20) {
+      return '☀️'; // Sunny/clear
+    } else if (avgCloudCover < 50) {
+      return '🌤️'; // Mostly sunny
+    } else if (avgCloudCover < 75) {
+      return '⛅'; // Partly cloudy
+    } else {
+      return '☁️'; // Cloudy/overcast
+    }
   }
 
   function calculateDayMetrics(data, dateStr) {
