@@ -778,6 +778,7 @@
       </div>
       <button class="btn btn-secondary" id="this-weekend" style="margin-top: 20px;">This Weekend</button>
       <button class="btn btn-secondary" id="next-weekend" style="margin-top: 20px;">Next Weekend</button>
+      <button class="btn btn-secondary" id="next-10-days" style="margin-top: 20px;">Next 10 Days</button>
       <div class="form-group">
         <label>🏔️ Elevation</label>
         <select id="elevation-select">
@@ -928,6 +929,7 @@
     // Event listeners
     $('#this-weekend').click(setThisWeekend);
     $('#next-weekend').click(setNextWeekend);
+    $('#next-10-days').click(setNext10Days);
     $('#add-mountain').click(addMountain);
     $('#add-epic-northeast').click(addEpicNortheastMountains);
     $('#load-forecast').click(loadForecast);
@@ -971,6 +973,15 @@
 
     $('#start-date').val(formatDate(friday));
     $('#end-date').val(formatDate(sunday));
+  }
+
+  function setNext10Days() {
+    const today = new Date();
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + 9);
+
+    $('#start-date').val(formatDate(today));
+    $('#end-date').val(formatDate(endDate));
   }
 
   function formatDate(date) {
