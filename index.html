@@ -2163,6 +2163,8 @@
       return scales.visibility.max;
     } else if (config.yAxisLabel === '%') {
       return scales.cloud.max;
+    } else if (config.yAxisLabel === 'inches') {
+      return scales.precip.max;
     }
     return undefined;
   }
@@ -2247,7 +2249,7 @@
       {
         id: `chart-snow-${dateStr}`,
         title: '❄️ Snowfall',
-        type: 'line',
+        type: 'precip',
         dataKey: 'snowfall',
         yAxisLabel: 'inches',
         backgroundColor: 'rgba(14, 165, 233, 0.6)',
@@ -2256,7 +2258,7 @@
       {
         id: `chart-rain-${dateStr}`,
         title: '🌧️ Rainfall',
-        type: 'line',
+        type: 'precip',
         dataKey: 'rain',
         yAxisLabel: 'inches',
         backgroundColor: 'rgba(34, 197, 94, 0.6)',
@@ -2312,6 +2314,15 @@
         const rain = data.rain[idx] || 0;
         scales.precip.max = Math.max(scales.precip.max, snow, rain);
       });
+
+      // Also track cumulative totals for the precip y-axis
+      ['snowfall', 'rain'].forEach(key => {
+        let cumulative = 0;
+        hourlyIndices.forEach(idx => {
+          cumulative += data[key][idx] || 0;
+          scales.precip.max = Math.max(scales.precip.max, cumulative);
+        });
+      });
     });
 
     // Add padding to scales (10%)
@@ -2321,7 +2332,7 @@
     scales.wind.max = Math.ceil(scales.wind.max * 1.1);
     scales.visibility.min = 0; // Visibility always starts at 0
     scales.visibility.max = Math.ceil(scales.visibility.max * 1.1);
-    scales.precip.max = Math.ceil(scales.precip.max * 1.1);
+    scales.precip.max = Math.ceil(scales.precip.max * 1.1 * 100) / 100;
 
     return scales;
   }
@@ -2366,6 +2377,59 @@
         labels: mountains.map(m => m.name),
         datasets: datasets
       };
+    } else if (config.type === 'precip') {
+      // For precip charts, create bar datasets (hourly) + cumulative dotted line datasets
+      const barDatasets = mountains.map((mountain, idx) => {
+        const data = weatherData[mountain.name][elevation].hourly;
+        const values = hourlyIndices.map(i => {
+          const val = data[config.dataKey][i];
+          return val > 0 ? val : null; // hide zero columns
+        });
+        const color = colors[idx % colors.length];
+
+        return {
+          label: mountain.name,
+          data: values,
+          type: 'bar',
+          backgroundColor: color.bg,
+          borderColor: color.border,
+          borderWidth: 1,
+          hidden: activeSeries !== null && activeSeries !== mountain.name,
+          order: 2
+        };
+      });
+
+      const lineDatasets = mountains.map((mountain, idx) => {
+        const data = weatherData[mountain.name][elevation].hourly;
+        let cumulative = 0;
+        const values = hourlyIndices.map(i => {
+          cumulative += data[config.dataKey][i] || 0;
+          return cumulative;
+        });
+        const color = colors[idx % colors.length];
+
+        return {
+          label: mountain.name + ' (cumul.)',
+          data: values,
+          type: 'line',
+          backgroundColor: 'transparent',
+          borderColor: color.border,
+          borderWidth: 2,
+          borderDash: [6, 4],
+          fill: false,
+          tension: 0.4,
+          pointRadius: 0,
+          hidden: activeSeries !== null && activeSeries !== mountain.name,
+          order: 1
+        };
+      });
+
+      datasets = [...barDatasets, ...lineDatasets];
+
+      chartData = {
+        labels: labels,
+        datasets: datasets
+      };
     } else {
       // For line charts, create one dataset per mountain
       datasets = mountains.map((mountain, idx) => {
@@ -2397,8 +2461,8 @@
     // Build annotations
     const annotations = {};
 
-    // Add ski day shaded area for line charts
-    if (config.type === 'line' && skiDayStart !== -1) {
+    // Add ski day shaded area for line/precip charts
+    if (config.type !== 'bar' && skiDayStart !== -1) {
       annotations.skiDay = {
         type: 'box',
         xMin: skiDayStart,
@@ -2488,25 +2552,29 @@
       };
     }
 
+    const isTimeSeries = config.type === 'line' || config.type === 'precip';
+
     const chartOptions = {
       responsive: true,
       maintainAspectRatio: true,
       aspectRatio: config.type === 'bar' ? 1.5 : 4/3.6,
       onClick: (e, elements) => {
-        if (config.type === 'line' && elements.length > 0) {
+        if (isTimeSeries && elements.length > 0) {
           const datasetIndex = elements[0].datasetIndex;
-          const clickedMountain = mountains[datasetIndex].name;
+          const clickedMountain = mountains[datasetIndex % mountains.length].name;
           toggleSeriesSolo(clickedMountain);
         }
       },
       plugins: {
         legend: {
-          display: config.type === 'line',
+          display: isTimeSeries,
           position: 'top',
+          labels: config.type === 'precip' ? {
+            filter: (legendItem) => !legendItem.text.includes('(cumul.)')
+          } : {},
           onClick: (e, legendItem, legend) => {
-            if (config.type === 'line') {
-              const index = legendItem.datasetIndex;
-              const clickedMountain = mountains[index].name;
+            if (isTimeSeries) {
+              const clickedMountain = mountains[legendItem.datasetIndex % mountains.length].name;
               toggleSeriesSolo(clickedMountain);
             }
           }
@@ -2521,7 +2589,7 @@
       },
       scales: {
         y: {
-          beginAtZero: config.type === 'bar' ? true : false,
+          beginAtZero: config.type === 'bar' || config.type === 'precip',
           min: getYAxisMin(config, scales),
           max: getYAxisMax(config, scales),
           title: {
@@ -2531,11 +2599,11 @@
         },
         x: {
           title: {
-            display: config.type === 'line',
+            display: isTimeSeries,
             text: 'Time'
           },
           ticks: {
-            autoSkip: config.type === 'line' ? true : false,
+            autoSkip: isTimeSeries,
             maxRotation: config.type === 'bar' ? 45 : 0,
             minRotation: config.type === 'bar' ? 45 : 0
           }
@@ -2549,8 +2617,11 @@
       chartOptions.categoryPercentage = 0.9;
     }
 
+    // Precip uses 'bar' as base chart type (line datasets override individually)
+    const chartType = config.type === 'precip' ? 'bar' : config.type;
+
     const chart = new Chart(ctx, {
-      type: config.type,
+      type: chartType,
       data: chartData,
       options: chartOptions
     });
@@ -2569,9 +2640,12 @@
 
     // Update all charts
     Object.values(charts).forEach(chart => {
-      chart.data.datasets.forEach((dataset, idx) => {
-        const datasetMountain = mountains[idx].name;
-        dataset.hidden = activeSeries !== null && activeSeries !== datasetMountain;
+      chart.data.datasets.forEach((dataset) => {
+        // Match mountain name from dataset label (handles "Mountain (cumul.)" labels too)
+        const datasetMountain = mountains.find(m => dataset.label.startsWith(m.name));
+        if (datasetMountain) {
+          dataset.hidden = activeSeries !== null && activeSeries !== datasetMountain.name;
+        }
       });
       chart.update();
     });
