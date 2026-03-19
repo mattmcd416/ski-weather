@@ -1549,7 +1549,8 @@
       return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     });
 
-    // Calculate shared y-axis scale
+    // Calculate shared y-axis scale (default 0-10, expand if data exceeds)
+    const defaultPrecipMax = 10;
     let maxPrecipitation = 0;
     snowDatasets.forEach(dataset => {
       const max = Math.max(...dataset.data);
@@ -1559,8 +1560,9 @@
       const max = Math.max(...dataset.data);
       maxPrecipitation = Math.max(maxPrecipitation, max);
     });
-    // Add 10% padding
-    const yAxisMax = Math.ceil(maxPrecipitation * 1.1 * 100) / 100;
+    const yAxisMax = maxPrecipitation > defaultPrecipMax
+      ? Math.ceil(maxPrecipitation * 1.1 * 100) / 100
+      : defaultPrecipMax;
 
     // Find today's index for the "today" line annotation
     const todayStr = formatDate(new Date());
@@ -2148,6 +2150,8 @@
       return scales.visibility.min;
     } else if (config.yAxisLabel === '%') {
       return scales.cloud.min;
+    } else if (config.yAxisLabel === 'inches') {
+      return scales.precip.min;
     }
     return undefined;
   }
@@ -2280,13 +2284,20 @@
   }
 
   function calculateSharedScales(dateStr, hourlyIndices, elevation) {
+    // Default scales — will expand if data exceeds these bounds
     const scales = {
-      temp: { min: Infinity, max: -Infinity },
-      wind: { min: Infinity, max: -Infinity },
+      temp: { min: 0, max: 60 },
+      wind: { min: 0, max: 60 },
       cloud: { min: 0, max: 100 },
-      visibility: { min: Infinity, max: -Infinity },
-      precip: { min: 0, max: -Infinity }
+      visibility: { min: 0, max: Infinity },
+      precip: { min: 0, max: 10 }
     };
+
+    // Track actual data ranges
+    const dataTemp = { min: Infinity, max: -Infinity };
+    const dataWind = { max: -Infinity };
+    const dataVis = { max: -Infinity };
+    const dataPrecip = { max: -Infinity };
 
     mountains.forEach(mountain => {
       const data = weatherData[mountain.name][elevation].hourly;
@@ -2295,24 +2306,22 @@
         // Temperature (both actual and feels-like)
         const temp = data.temperature_2m[idx] || 0;
         const apparentTemp = data.apparent_temperature[idx] || 0;
-        scales.temp.min = Math.min(scales.temp.min, temp, apparentTemp);
-        scales.temp.max = Math.max(scales.temp.max, temp, apparentTemp);
+        dataTemp.min = Math.min(dataTemp.min, temp, apparentTemp);
+        dataTemp.max = Math.max(dataTemp.max, temp, apparentTemp);
 
         // Wind (both speed and gusts)
         const wind = data.wind_speed_10m[idx] || 0;
         const gust = data.wind_gusts_10m[idx] || 0;
-        scales.wind.min = Math.min(scales.wind.min, wind, gust);
-        scales.wind.max = Math.max(scales.wind.max, wind, gust);
+        dataWind.max = Math.max(dataWind.max, wind, gust);
 
         // Visibility
         const vis = data.visibility[idx] || 0;
-        scales.visibility.min = Math.min(scales.visibility.min, vis);
-        scales.visibility.max = Math.max(scales.visibility.max, vis);
+        dataVis.max = Math.max(dataVis.max, vis);
 
         // Precipitation (snowfall and rain totals)
         const snow = data.snowfall[idx] || 0;
         const rain = data.rain[idx] || 0;
-        scales.precip.max = Math.max(scales.precip.max, snow, rain);
+        dataPrecip.max = Math.max(dataPrecip.max, snow, rain);
       });
 
       // Also track cumulative totals for the precip y-axis
@@ -2320,19 +2329,25 @@
         let cumulative = 0;
         hourlyIndices.forEach(idx => {
           cumulative += data[key][idx] || 0;
-          scales.precip.max = Math.max(scales.precip.max, cumulative);
+          dataPrecip.max = Math.max(dataPrecip.max, cumulative);
         });
       });
     });
 
-    // Add padding to scales (10%)
-    scales.temp.min = Math.floor(scales.temp.min * 1.1);
-    scales.temp.max = Math.ceil(scales.temp.max * 1.1);
-    scales.wind.min = 0; // Wind always starts at 0
-    scales.wind.max = Math.ceil(scales.wind.max * 1.1);
-    scales.visibility.min = 0; // Visibility always starts at 0
-    scales.visibility.max = Math.ceil(scales.visibility.max * 1.1);
-    scales.precip.max = Math.ceil(scales.precip.max * 1.1 * 100) / 100;
+    // Expand defaults if data exceeds them
+    if (dataTemp.min < scales.temp.min) {
+      scales.temp.min = Math.floor(dataTemp.min * 1.1);
+    }
+    if (dataTemp.max > scales.temp.max) {
+      scales.temp.max = Math.ceil(dataTemp.max * 1.1);
+    }
+    if (dataWind.max > scales.wind.max) {
+      scales.wind.max = Math.ceil(dataWind.max * 1.1);
+    }
+    scales.visibility.max = Math.ceil(dataVis.max * 1.1);
+    if (dataPrecip.max > scales.precip.max) {
+      scales.precip.max = Math.ceil(dataPrecip.max * 1.1 * 100) / 100;
+    }
 
     return scales;
   }
